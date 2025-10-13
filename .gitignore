@@ -6,3 +6,5 @@ gradle/
 fabric/
 .gradle/
 common/
+
+.idea/
