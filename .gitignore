@@ -2,7 +2,6 @@
 run/
 build/
 forge/
-gradle/
 fabric/
 .gradle/
 
