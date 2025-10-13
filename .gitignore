@@ -1,3 +1,8 @@
 # Ignore runtime outputs and build artifacts
 /run/
 /build/
+/forge/
+/gradle/
+/fabric/
+/.gradle/
+/common/
