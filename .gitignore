@@ -1,8 +1,6 @@
 # Ignore runtime outputs and build artifacts
 run/
 build/
-forge/
-fabric/
 .gradle/
 
 .idea/
