@@ -1,0 +1,53 @@
+# Forge Mods.toml 配置文件
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "MIT"
+
+# Mixin 配置
+[[mixins]]
+config = "roadweaver.mixins.json"
+
+[[mods]]
+modId = "roadweaver"
+version = "${mod_version}"
+displayName = "RoadWeaver"
+authors = "Countered"
+description = '''Automatically generates roads between structures like villages'''
+logoFile = "icon.png"
+
+[[dependencies.roadweaver]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,48)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.roadweaver]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.21)"
+ordering = "NONE"
+side = "BOTH"
+
+# Architectury API 已内嵌，不需要外部依赖
+# [[dependencies.roadweaver]]
+# modId = "architectury"
+# mandatory = true
+# versionRange = "[9.0,10.0)"
+# ordering = "AFTER"
+# side = "BOTH"
+
+[[dependencies.roadweaver]]
+modId = "cloth_config"
+mandatory = false
+versionRange = "[11.0,)"
+ordering = "NONE"
+side = "CLIENT"
+
+# Architectury API 已内嵌，不需要外部依赖
+# [[dependencies.roadweaver]]
+# modId = "architectury"
+# mandatory = true
+# versionRange = "[9.0,10.0)"
+# ordering = "AFTER"
+# side = "BOTH"

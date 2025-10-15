@@ -1,0 +1,56 @@
+// 根项目配置 - 多模块项目
+plugins {
+	id 'architectury-plugin' version '3.4-SNAPSHOT'
+	id 'dev.architectury.loom' version '1.6-SNAPSHOT' apply false
+}
+
+architectury {
+	minecraft = '1.20.1'
+}
+
+allprojects {
+	apply plugin: 'java'
+	apply plugin: 'architectury-plugin'
+	apply plugin: 'maven-publish'
+	
+	group = 'net.countered.settlementroads'
+	version = '1.0.4'
+	
+	repositories {
+		maven { url = 'https://maven.architectury.dev/' }
+		maven { url = 'https://maven.fabricmc.net/' }
+		maven { url = 'https://maven.minecraftforge.net/' }
+		maven { url = 'https://maven.shedaniel.me/' }
+		maven { url = 'https://maven.terraformersmc.com/' }
+		mavenCentral()
+	}
+	
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
+		options.release = 17
+	}
+	
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(17)
+		}
+		withSourcesJar()
+	}
+}
+
+subprojects {
+	apply plugin: 'dev.architectury.loom'
+	
+	base {
+		archivesName = "${rootProject.name}-${project.name}"
+	}
+	
+	loom {
+		silentMojangMappingsLicense()
+	}
+	
+	dependencies {
+		minecraft "com.mojang:minecraft:1.20.1"
+		mappings loom.officialMojangMappings()
+	}
+}

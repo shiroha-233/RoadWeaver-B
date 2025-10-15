@@ -1,0 +1,173 @@
+plugins {
+	id 'com.gradleup.shadow' version '8.3.6'
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+loom {
+    // Forge 配置
+    forge {
+        // 数据生成配置
+        dataGen {
+            mod "roadweaver"
+        }
+        
+        // Mixin 配置
+        mixinConfig "roadweaver.mixins.json"
+    }
+
+    // 数据生成运行配置
+    runs {
+        data {
+            data()
+            programArgs "--all", "--mod", "roadweaver"
+            programArgs "--output", file("src/generated/resources").absolutePath
+            programArgs "--existing", file("src/main/resources").absolutePath
+        }
+    }
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin since it conflicts with Loom.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+
+shadowJar {
+    exclude "architectury.common.json"
+    exclude "fabric.mod.json"
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set("dev-shadow")
+}
+
+remapJar {
+	inputFile.set shadowJar.archiveFile
+	dependsOn shadowJar
+}
+
+jar {
+	archiveClassifier.set("dev")
+	from("${rootProject.projectDir}/LICENSE") {
+		rename { "${it}_${base.archivesName.get()}"}
+	}
+	
+	manifest {
+		attributes([
+			'Specification-Title'     : 'RoadWeaver',
+			'Specification-Vendor'    : 'Countered',
+			'Specification-Version'   : '1',
+			'Implementation-Title'    : project.name,
+			'Implementation-Version'  : project.version,
+			'Implementation-Vendor'   : 'Countered',
+			'MixinConfigs'            : 'roadweaver.mixins.json'
+		])
+	}
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://maven.shedaniel.me/"
+        name "Shedaniel Maven"
+    }
+    maven {
+        url "https://maven.minecraftforge.net/"
+        name "Forge"
+    }
+    maven {
+        url "https://maven.architectury.dev/"
+        name "Architectury"
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def replaceProperties = [
+        minecraft_version: '1.20.1',
+        minecraft_version_range: '[1.20.1,1.21)',
+        forge_version: project.forge_version,
+        forge_version_range: '[47,48)',
+        loader_version_range: '[47,)',
+        mod_id: 'roadweaver',
+        mod_name: 'RoadWeaver',
+        mod_version: project.version,
+        mod_authors: 'Countered',
+        mod_description: 'Automatically generates roads between structures'
+    ]
+
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+dependencies {
+    // Common 模块 - 添加源代码到编译路径
+    common(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
+
+    // Forge 平台
+    forge "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // Architectury API - 使用 Jar-in-Jar 内嵌
+    modApi("dev.architectury:architectury-forge:9.2.14")
+    include("dev.architectury:architectury-forge:9.2.14")
+
+    // Cloth Config API for Forge
+    modCompileOnly "me.shedaniel.cloth:cloth-config-forge:11.1.136"
+    modRuntimeOnly "me.shedaniel.cloth:cloth-config-forge:11.1.136"
+}
+ 
+// Source JAR 组装（合并 common 源码）
+sourcesJar {
+    // Avoid duplicate entries when merging common sources
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // 使用 common 中的 RoadFeatureConfig，避免重复类定义
+            exclude 'net/countered/settlementroads/features/config/RoadFeatureConfig.java'
+            exclude 'net/countered/settlementroads/features/RoadFeature.java'
+            // 使用 common 中的事件处理器
+            exclude 'net/countered/settlementroads/events/ModEventHandler.java'
+            // 使用 common 中的统一注册（避免与平台侧实现重复、方法签名不一致）
+            exclude 'net/countered/settlementroads/features/config/RoadFeatureRegistry.java'
+        }
+        resources {
+            // 输出的数据目录
+            srcDir 'src/generated/resources'
+            // Use common data-driven configured/placed features to avoid duplication
+            exclude 'data/roadweaver/worldgen/configured_feature/road_feature.json'
+            exclude 'data/roadweaver/worldgen/placed_feature/road_feature_placed.json'
+        }
+    }
+}
+
+// Maven 发布
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			artifactId = "${rootProject.name}-forge"
+			from components.java
+		}
+	}
+	repositories {
+		// 添加发布仓库
+	}
+}

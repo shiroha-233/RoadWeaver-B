@@ -1,0 +1,162 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
+plugins {
+	id 'com.gradleup.shadow' version '8.3.6'
+	id "com.modrinth.minotaur" version "2.+"
+	id 'net.darkhax.curseforgegradle' version '1.1.15'
+}
+
+architectury {
+	platformSetupLoomIde()
+	fabric()
+}
+
+configurations {
+	common
+	shadowCommon // Don't use shadow from the shadow plugin since it conflicts with Loom.
+	compileClasspath.extendsFrom common
+	runtimeClasspath.extendsFrom common
+	developmentFabric.extendsFrom common
+}
+
+repositories {
+	maven {
+		url = "https://api.modrinth.com/maven"
+	}
+	maven {
+		url "https://maven.shedaniel.me/"
+		name "Shedaniel Maven"
+	}
+}
+
+// Loom 1.0.x 不支持 fabricApi.configureDataGeneration
+// 数据生成配置已移至 loom.runs 中
+
+dependencies {
+	// Common 模块 - 添加源代码到编译路径
+	implementation project(":common")
+	common(project(path: ":common", configuration: "namedElements")) { transitive = false }
+	shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive = false }
+	
+	// Fabric Loader
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	
+	// Fabric API
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	
+	// Architectury API - 内嵌到模组中
+	modImplementation("dev.architectury:architectury-fabric:9.2.14") {
+		exclude group: "net.fabricmc.fabric-api"
+	}
+	include("dev.architectury:architectury-fabric:9.2.14")
+	
+	// Cloth Config API for Fabric
+	modApi("me.shedaniel.cloth:cloth-config-fabric:11.1.106") {
+		exclude group: "net.fabricmc.fabric-api"
+	}
+	
+	// ModMenu for configuration screen
+	modImplementation("com.terraformersmc:modmenu:7.2.2")
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+shadowJar {
+	exclude "architectury.common.json"
+	configurations = [project.configurations.shadowCommon]
+	archiveClassifier.set("dev-shadow")
+}
+
+remapJar {
+	inputFile.set shadowJar.archiveFile
+	dependsOn shadowJar
+	archiveClassifier.set(null)
+}
+
+jar {
+	archiveClassifier.set("dev")
+	from("${rootProject.projectDir}/LICENSE") {
+		rename { "${it}_${base.archivesName.get()}"}
+	}
+}
+sourcesJar {
+    // Avoid duplicate entries when merging common sources
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    def commonSources = project(':common').sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+loom {
+	accessWidenerPath = file("src/main/resources/road-weaver.accesswidener")
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+// Modrinth 发布配置
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = "countereds-settlement-roads"
+    versionNumber = "${project.version}"
+    versionType = "release"
+    uploadFile = remapJar
+    gameVersions = ["1.20.1"]
+    loaders = ["fabric"]
+    changelog = file("${rootProject.projectDir}/changelog.md").text
+    versionName = "RoadWeaver ${project.version} (Fabric)"
+    dependencies {
+        embedded.project "midnightlib"
+    }
+}
+
+// CurseForge 发布配置
+tasks.register("curseforge", TaskPublishCurseForge) {
+	apiToken = System.getenv("CURSEFORGE_TOKEN")
+	def projectId = "1140708"
+	def mainFile = upload(projectId, remapJar)
+	mainFile.changelog = file("${rootProject.projectDir}/changelog.md")
+	mainFile.changelogType = "markdown"
+	mainFile.displayName = "RoadWeaver ${project.version} (Fabric)"
+	mainFile.addGameVersion("Fabric")
+	mainFile.addGameVersion("1.20.1")
+	mainFile.addEmbedded("midnightlib")
+}
+
+// Maven 发布
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = "${rootProject.name}-fabric"
+            from components.java
+        }
+    }
+    repositories {
+        // 添加发布仓库
+    }
+}
+
+// 使用 common 中的 roadFeature，避免重复类定义
+sourceSets {
+    main {
+        java {
+            exclude 'net/countered/settlementroads/features/RoadFeature.java'
+            exclude 'net/countered/settlementroads/events/ModEventHandler.java'
+            // Use common's unified registry instead of platform-specific one
+            exclude 'net/countered/settlementroads/features/config/RoadFeatureRegistry.java'
+        }
+        resources {
+            // Use common data-driven configured/placed features
+            exclude 'data/roadweaver/worldgen/configured_feature/road_feature.json'
+            exclude 'data/roadweaver/worldgen/placed_feature/road_feature_placed.json'
+        }
+    }
+}
