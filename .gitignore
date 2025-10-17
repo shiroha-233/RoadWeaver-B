@@ -6,3 +6,6 @@
 /fabric/
 /.gradle/
 /common/
+
+# Generated files
+src/main/generated/
