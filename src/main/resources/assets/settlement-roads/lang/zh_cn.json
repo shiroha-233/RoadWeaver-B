@@ -1,0 +1,116 @@
+{
+  "settlement-roads.midnightconfig.title":"Countered 的聚落道路",
+  
+  "settlement-roads.midnightconfig.category.structures":"结构设置",
+  "settlement-roads.midnightconfig.category.roads":"道路设置",
+  "settlement-roads.midnightconfig.category.pre-generation":"预生成设置",
+  "settlement-roads.midnightconfig.category.pathfinding":"路径查找设置",
+  "settlement-roads.midnightconfig.category.road_types":"道路类型设置",
+  "settlement-roads.midnightconfig.category.decorations":"装饰设置",
+  "settlement-roads.midnightconfig.category.biome_costs":"生物群系成本设置",
+  "settlement-roads.midnightconfig.category.config_validation":"配置验证设置",
+  "settlement-roads.midnightconfig.category.global":"全局设置",
+
+  "settlement-roads.midnightconfig.initialLocatingCount":"世界加载时定位的结构数量",
+  "settlement-roads.midnightconfig.initialLocatingCount.tooltip": "选择世界加载时定位的结构数量。数量越大 = 加载时间越长",
+
+  "settlement-roads.midnightconfig.maxLocatingCount":"最大定位结构数量",
+  "settlement-roads.midnightconfig.maxLocatingCount.tooltip": "选择动态定位的最大结构数量。数量越大 = 内存使用越多",
+  
+  "settlement-roads.midnightconfig.structureToLocate": "要定位的结构",
+  "settlement-roads.midnightconfig.structureToLocate.tooltip": "选择或输入要定位的结构。例如：#minecraft:village（村庄标签）, minecraft:village_plains（平原村庄）或 modid:custom_structure（模组结构）。支持结构标签和键。",
+  
+  "settlement-roads.midnightconfig.averagingRadius": "地形平均半径",
+  "settlement-roads.midnightconfig.averagingRadius.tooltip": "人工道路的地形平滑程度。数值越大越平滑，但可能不自然。默认：1",
+
+  "settlement-roads.midnightconfig.maxHeightDifference": "最大高度差",
+  "settlement-roads.midnightconfig.maxHeightDifference.tooltip": "道路允许的最大高度差。数值越大越容易翻山越岭，但道路可能很陡。默认：5",
+
+  "settlement-roads.midnightconfig.maxTerrainStability": "地形稳定性检查",
+  "settlement-roads.midnightconfig.maxTerrainStability.tooltip": "地形稳定性阈值。数值越大越容易通过崎岖地形。默认：4",
+
+  "settlement-roads.midnightconfig.maxConcurrentRoadGeneration": "同时生成道路数量上限",
+  "settlement-roads.midnightconfig.maxConcurrentRoadGeneration.tooltip": "同时生成的道路任务数量上限。数值越小性能占用越低，但道路生成速度会变慢。默认：3",
+
+  "settlement-roads.midnightconfig.neighborDistance": "邻居距离",
+  "settlement-roads.midnightconfig.neighborDistance.tooltip": "A*算法中考虑的相邻方块距离。数值越大搜索范围越广，但计算量增加。默认：1",
+
+  "settlement-roads.midnightconfig.diagonalStepCost": "对角线步进成本",
+  "settlement-roads.midnightconfig.diagonalStepCost.tooltip": "对角线移动的成本，√2的近似值。影响路径的平滑度。默认：1.4",
+
+  "settlement-roads.midnightconfig.straightStepCost": "直线步进成本",
+  "settlement-roads.midnightconfig.straightStepCost.tooltip": "直线移动的成本，作为基准值。默认：1.0",
+
+  "settlement-roads.midnightconfig.maxSteps": "最大步数",
+  "settlement-roads.midnightconfig.maxSteps.tooltip": "A*算法的最大搜索步数，防止无限循环。数值越大搜索越彻底，但可能影响性能。默认：1000",
+
+  "settlement-roads.midnightconfig.heuristicWeight": "启发式权重",
+  "settlement-roads.midnightconfig.heuristicWeight.tooltip": "影响A*算法的搜索效率。数值越大搜索越快但可能不够精确。默认：1.0",
+
+  "settlement-roads.midnightconfig.roadTypeConfigPrefix": "道路类型配置前缀",
+  "settlement-roads.midnightconfig.roadTypeConfigPrefix.tooltip": "用于动态生成道路类型配置项的前缀。支持用户自定义任意道路类型。默认：road_type_",
+
+  "settlement-roads.midnightconfig.roadTypeConfigSuffix": "道路类型配置后缀",
+  "settlement-roads.midnightconfig.roadTypeConfigSuffix.tooltip": "用于动态生成道路类型配置项的后缀。支持用户自定义任意道路类型。默认：_enabled",
+
+  "settlement-roads.midnightconfig.decorationConfigPrefix": "装饰配置前缀",
+  "settlement-roads.midnightconfig.decorationConfigPrefix.tooltip": "用于动态生成装饰配置项的前缀。支持用户自定义任意装饰类型。默认：decoration_",
+
+  "settlement-roads.midnightconfig.decorationConfigSuffix": "装饰配置后缀",
+  "settlement-roads.midnightconfig.decorationConfigSuffix.tooltip": "用于动态生成装饰配置项的后缀。支持用户自定义任意装饰类型。默认：_enabled",
+
+  "settlement-roads.midnightconfig.biomeCostConfigPrefix": "生物群系成本配置前缀",
+  "settlement-roads.midnightconfig.biomeCostConfigPrefix.tooltip": "用于动态生成生物群系成本配置项的前缀。支持用户自定义任意生物群系规则。默认：biome_cost_",
+
+  "settlement-roads.midnightconfig.biomeCostConfigSuffix": "生物群系成本配置后缀",
+  "settlement-roads.midnightconfig.biomeCostConfigSuffix.tooltip": "用于动态生成生物群系成本配置项的后缀。支持用户自定义任意生物群系规则。默认：_cost",
+
+  "settlement-roads.midnightconfig.enableConfigValidation": "启用配置验证",
+  "settlement-roads.midnightconfig.enableConfigValidation.tooltip": "启用配置项的有效性检查，确保配置正确。默认：true",
+
+  "settlement-roads.midnightconfig.fallbackToDefaults": "回退到默认值",
+  "settlement-roads.midnightconfig.fallbackToDefaults.tooltip": "配置加载失败时是否回退到默认值。默认：true",
+
+  "settlement-roads.midnightconfig.heightCacheLimit": "高度缓存限制",
+  "settlement-roads.midnightconfig.heightCacheLimit.tooltip": "高度缓存的最大条目数，控制内存使用。数值越大性能越好但内存占用越多。默认：1000",
+
+  "settlement-roads.midnightconfig.maxConcurrentPathfinding": "最大并发路径查找数量",
+  "settlement-roads.midnightconfig.maxConcurrentPathfinding.tooltip": "同时进行的路径查找任务数量上限，控制性能。数值越小性能占用越低。默认：5",
+
+  "settlement-roads.midnightconfig.maxChunksForLocating": "最大定位区块数",
+  "settlement-roads.midnightconfig.maxChunksForLocating.tooltip": "结构定位时搜索的最大区块数量。数值越大搜索范围越广，但可能影响性能。默认：300",
+
+  "settlement-roads.midnightconfig.segmentStartOffset": "路段起始偏移",
+  "settlement-roads.midnightconfig.segmentStartOffset.tooltip": "道路路段起始位置的偏移量，用于避免与结构重叠。数值越大道路起始点离结构越远。默认：60",
+
+  "settlement-roads.midnightconfig.segmentEndOffset": "路段结束偏移",
+  "settlement-roads.midnightconfig.segmentEndOffset.tooltip": "道路路段结束位置的偏移量，用于避免与结构重叠。数值越大道路结束点离结构越远。默认：60",
+
+  "settlement-roads.midnightconfig.maxClearBlocksAbove": "最大清理上方方块数",
+  "settlement-roads.midnightconfig.maxClearBlocksAbove.tooltip": "道路生成时清理上方方块的最大数量，防止道路被遮挡。数值越大清理范围越广。默认：3",
+
+  "settlement-roads.midnightconfig.decorationStartOffset": "装饰起始偏移",
+  "settlement-roads.midnightconfig.decorationStartOffset.tooltip": "装饰物放置的起始偏移量，用于避免与结构重叠。数值越大装饰物离结构越远。默认：65",
+
+  "settlement-roads.midnightconfig.replaceableBlocksConfigFile": "可替换方块配置文件",
+  "settlement-roads.midnightconfig.replaceableBlocksConfigFile.tooltip": "定义道路生成时可以替换的方块类型的配置文件路径。默认：config/settlement-roads/replaceable_blocks.json",
+
+
+  "key.settlementroads.debug_map": "打开调试地图",
+  "category.settlementroads": "聚落道路",
+
+  "gui.settlementroads.debug_map.title": "聚落道路 - 调试地图",
+  "gui.settlementroads.debug_map.structures": "结构: %s",
+  "gui.settlementroads.debug_map.planned": "计划中: %s",
+  "gui.settlementroads.debug_map.generating": "生成中: %s",
+  "gui.settlementroads.debug_map.completed": "已完成: %s",
+  "gui.settlementroads.debug_map.roads": "道路: %s",
+  "gui.settlementroads.debug_map.zoom": "缩放: %sx",
+  "gui.settlementroads.debug_map.blocks": "%s 方块",
+  "gui.settlementroads.debug_map.failed": "失败: %s",
+  "gui.settlementroads.debug_map.legend.structures": "结构",
+  "gui.settlementroads.debug_map.legend.planned": "计划中",
+  "gui.settlementroads.debug_map.legend.generating": "生成中",
+  "gui.settlementroads.debug_map.legend.failed": "失败",
+  "gui.settlementroads.debug_map.legend.roads": "道路"
+}
