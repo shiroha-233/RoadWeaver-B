@@ -1,4 +1,5 @@
 package net.countered.settlementroads.features.roadlogic;
+
 import net.countered.settlementroads.config.ConfigProvider;
 import net.countered.settlementroads.config.IModConfig;
 import net.countered.settlementroads.helpers.Records;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.lang.Math.*;
+
 public class RoadPathCalculator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("roadweaver");
@@ -29,26 +32,30 @@ public class RoadPathCalculator {
     }
 
     // Backward-compatible overload using current config defaults
-    public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
-            BlockPos start, BlockPos end, int width, ServerLevel serverWorld, int maxSteps
-    ) {
+    public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(BlockPos start, BlockPos end, int width, ServerLevel serverWorld, int maxSteps) {
         IModConfig cfg = ConfigProvider.get();
-        return calculateAStarRoadPath(start, end, width, serverWorld, maxSteps,
-                cfg.maxHeightDifference(), cfg.maxTerrainStability(), false);
+        return calculateAStarRoadPath(start, end, width, serverWorld, maxSteps, cfg.maxHeightDifference(), cfg.maxTerrainStability(), false);
     }
 
-    public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
-            BlockPos start, BlockPos end, int width, ServerLevel serverWorld, int maxSteps,
-            int maxHeightDifference, int maxTerrainStability
-    ) {
-        return calculateAStarRoadPath(start, end, width, serverWorld, maxSteps,
-                maxHeightDifference, maxTerrainStability, false);
+    public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(BlockPos start, BlockPos end, int width, ServerLevel serverWorld, int maxSteps, int maxHeightDifference, int maxTerrainStability) {
+        return calculateAStarRoadPath(start, end, width, serverWorld, maxSteps, maxHeightDifference, maxTerrainStability, false);
     }
 
-    public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
-            BlockPos start, BlockPos end, int width, ServerLevel serverWorld, int maxSteps,
-            int maxHeightDifference, int maxTerrainStability, boolean ignoreWater
-    ) {
+    /**
+     * 使用A*算法计算路线路径
+     *
+     * @param start               起始坐标
+     * @param end                 终点坐标
+     * @param width               路线宽度
+     * @param serverWorld         服务器
+     * @param maxSteps            最大步长
+     * @param maxHeightDifference 最大高度差
+     * @param maxTerrainStability 最大地形稳定度
+     * @param ignoreWater         是否忽略水域
+     * @return //
+     */
+    public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(BlockPos start, BlockPos end, int width, ServerLevel serverWorld, int maxSteps, int maxHeightDifference, int maxTerrainStability, boolean ignoreWater) {
+        Objects.requireNonNull(serverWorld);
         PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.fScore));
         Map<BlockPos, Node> allNodes = new HashMap<>();
         Set<BlockPos> closedSet = new HashSet<>();
@@ -70,15 +77,12 @@ public class RoadPathCalculator {
         allNodes.put(startGround, startNode);
 
         int d = NEIGHBOR_DISTANCE;
-        int[][] neighborOffsets = {
-                {d, 0}, {-d, 0}, {0, d}, {0, -d},
-                {d, d}, {d, -d}, {-d, d}, {-d, -d}
-        };
+        int[][] neighborOffsets = {{d, 0}, {-d, 0}, {0, d}, {0, -d}, {d, d}, {d, -d}, {-d, d}, {-d, -d}};
 
         while (!openSet.isEmpty() && maxSteps-- > 0) {
             Node current = openSet.poll();
 
-            if (current.pos.offset(0, -current.pos.getY(), 0).distManhattan(endGround.offset(0, -endGround.getY(), 0)) < NEIGHBOR_DISTANCE * 2) {
+            if (current.pos.distManhattan(endGround) < NEIGHBOR_DISTANCE * 2) {
                 LOGGER.debug("Found path! {}", current.pos);
                 return reconstructPath(current, width, interpolatedSegments);
             }
@@ -93,19 +97,14 @@ public class RoadPathCalculator {
                 if (closedSet.contains(neighborPos)) continue;
 
                 Holder<Biome> biomeHolder = biomeSampler(neighborPos, serverWorld);
-                boolean isWater = biomeHolder.is(BiomeTags.IS_RIVER)
-                        || biomeHolder.is(BiomeTags.IS_OCEAN)
-                        || biomeHolder.is(BiomeTags.IS_DEEP_OCEAN);
+                boolean isWater = biomeHolder.is(BiomeTags.IS_RIVER) || biomeHolder.is(BiomeTags.IS_OCEAN) || biomeHolder.is(BiomeTags.IS_DEEP_OCEAN);
                 // 水域成本：50 * 8 = 400（与原项目一致）
                 // 如果绕路成本更高（距离远、高度差大），仍会选择穿过水域
                 // 手动模式且忽略水域时，水域成本为 0（用于跨海连接）
                 int biomeCost = (isWater && !ignoreWater) ? 50 : 0;
-                int elevation = Math.abs(y - current.pos.getY());
-                if (elevation > maxHeightDifference) {
-                    continue;
-                }
-                int offsetSum = Math.abs(Math.abs(offset[0])) + Math.abs(offset[1]);
-                double stepCost = (offsetSum == 2 * NEIGHBOR_DISTANCE) ? 1.5 : 1;
+                int elevation = abs(y - current.pos.getY());
+                if (elevation > maxHeightDifference) continue;
+                double stepCost = offset[0] * offset[0] + offset[1] * offset[1] == NEIGHBOR_DISTANCE * NEIGHBOR_DISTANCE ? 1.0 : 1.5;
                 int terrainStabilityCost = calculateTerrainStability(neighborPos, y, serverWorld);
                 if (terrainStabilityCost > maxTerrainStability) {
                     continue;
@@ -139,9 +138,11 @@ public class RoadPathCalculator {
     }
 
     private static double heuristic(BlockPos a, BlockPos b) {
+        Objects.requireNonNull(a);
+        Objects.requireNonNull(b);
         int dx = a.getX() - b.getX();
         int dz = a.getZ() - b.getZ();
-        double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
+        double dxzApprox = abs(dx) + abs(dz) - 0.6 * min(abs(dx), abs(dz));
         return dxzApprox * 30;
     }
 
@@ -150,15 +151,20 @@ public class RoadPathCalculator {
         for (Direction direction : Direction.Plane.HORIZONTAL) {
             BlockPos testPos = neighborPos.relative(direction);
             int testY = heightSampler(testPos.getX(), testPos.getZ(), serverWorld);
-            int elevation = Math.abs(y - testY);
+            int elevation = abs(y - testY);
             cost += elevation;
         }
         return cost;
     }
 
-    private static List<Records.RoadSegmentPlacement> reconstructPath(
-            Node endNode, int width, Map<BlockPos, List<BlockPos>> interpolatedPathMap
-    ) {
+    private static List<Records.RoadSegmentPlacement> reconstructPath(Node endNode, int width, Map<BlockPos, List<BlockPos>> interpolatedPathMap) {
+        Objects.requireNonNull(endNode);
+        Objects.requireNonNull(interpolatedPathMap);
+        if (width <= 0) {
+            LOGGER.error("Width must be greater than 0.");
+            return List.of();
+        }
+
         List<Node> pathNodes = new ArrayList<>();
         Node current = endNode;
         while (current != null) {
@@ -172,22 +178,10 @@ public class RoadPathCalculator {
 
         for (Node node : pathNodes) {
             BlockPos pos = node.pos;
-            List<BlockPos> interpolated = interpolatedPathMap.getOrDefault(pos, Collections.emptyList());
-            RoadDirection roadDirection = RoadDirection.X_AXIS;
+            List<BlockPos> interpolated = interpolatedPathMap.getOrDefault(pos, List.of());
+            RoadDirection roadDirection = determineRoadDirection(interpolated, pos);
             if (!interpolated.isEmpty()) {
-                BlockPos firstInterpolated = interpolated.get(0);
-                int dx = pos.getX() - firstInterpolated.getX();
-                int dz = pos.getZ() - firstInterpolated.getZ();
-
-                if ((dx < 0 && dz > 0) || (dx > 0 && dz < 0)) {
-                    roadDirection = RoadDirection.DIAGONAL_1;
-                } else if ((dx < 0 && dz < 0) || (dx > 0 && dz > 0)) {
-                    roadDirection = RoadDirection.DIAGONAL_2;
-                } else if (dx == 0 && dz != 0) {
-                    roadDirection = RoadDirection.Z_AXIS;
-                }
-
-                for (BlockPos interp : interpolated) {
+                for (var interp : interpolatedPathMap.getOrDefault(pos, List.of())) {
                     Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache, roadDirection);
                     roadSegments.put(interp, widthSetInterp);
                 }
@@ -196,12 +190,25 @@ public class RoadPathCalculator {
             Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache, roadDirection);
             roadSegments.put(pos, widthSet);
         }
+        return roadSegments.entrySet().stream().map(entry -> new Records.RoadSegmentPlacement(entry.getKey(), new ArrayList<>(entry.getValue()))).toList();
+    }
 
-        List<Records.RoadSegmentPlacement> result = new ArrayList<>();
-        for (Map.Entry<BlockPos, Set<BlockPos>> entry : roadSegments.entrySet()) {
-            result.add(new Records.RoadSegmentPlacement(entry.getKey(), new ArrayList<>(entry.getValue())));
+    private static RoadDirection determineRoadDirection(List<BlockPos> interpolated, BlockPos pos) {
+        RoadDirection roadDirection = RoadDirection.X_AXIS;
+        if (!interpolated.isEmpty()) {
+            BlockPos firstInterpolated = interpolated.get(0);
+            int dx = pos.getX() - firstInterpolated.getX();
+            int dz = pos.getZ() - firstInterpolated.getZ();
+
+            if ((dx < 0 && dz > 0) || (dx > 0 && dz < 0)) {
+                roadDirection = RoadDirection.DIAGONAL_1;
+            } else if ((dx < 0 && dz < 0) || (dx > 0 && dz > 0)) {
+                roadDirection = RoadDirection.DIAGONAL_2;
+            } else if (dx == 0 && dz != 0) {
+                roadDirection = RoadDirection.Z_AXIS;
+            }
         }
-        return result;
+        return roadDirection;
     }
 
     // Height sampler method - improved with sea level handling
@@ -209,12 +216,8 @@ public class RoadPathCalculator {
         long key = hashXZ(x, z);
         return heightCache.computeIfAbsent(key, k -> {
             int seaLevel = serverWorld.getSeaLevel();
-            int oceanFloorHeight = serverWorld.getChunkSource()
-                    .getGenerator()
-                    .getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, serverWorld, serverWorld.getChunkSource().randomState());
-            int worldSurfaceHeight = serverWorld.getChunkSource()
-                    .getGenerator()
-                    .getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, serverWorld, serverWorld.getChunkSource().randomState());
+            int oceanFloorHeight = serverWorld.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, serverWorld, serverWorld.getChunkSource().randomState());
+            int worldSurfaceHeight = serverWorld.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, serverWorld, serverWorld.getChunkSource().randomState());
 
             if (worldSurfaceHeight <= seaLevel && oceanFloorHeight < seaLevel) {
                 return seaLevel;
@@ -241,7 +244,7 @@ public class RoadPathCalculator {
     }
 
     private static int snapToGrid(int value, int gridSize) {
-        return Math.floorDiv(value, gridSize) * gridSize;
+        return floorDiv(value, gridSize) * gridSize;
     }
 
     private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache, RoadDirection direction) {
