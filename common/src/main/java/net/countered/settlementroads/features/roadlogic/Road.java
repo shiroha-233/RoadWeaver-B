@@ -1,5 +1,6 @@
 package net.countered.settlementroads.features.roadlogic;
 
+import net.countered.settlementroads.chunk.ChunkRoadStateManager;
 import net.countered.settlementroads.config.ConfigProvider;
 import net.countered.settlementroads.config.IModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
@@ -8,41 +9,33 @@ import net.countered.settlementroads.persistence.WorldDataProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-public class Road {
+public record Road(
+        ServerLevel serverWorld,
+        Records.StructureConnection structureConnection,
+        RoadFeatureConfig context
+) {
 
-    private final ServerLevel serverWorld;
-    private final Records.StructureConnection structureConnection;
-    private final RoadFeatureConfig context;
-
-    public Road(ServerLevel serverWorld,
-                Records.StructureConnection structureConnection,
-                RoadFeatureConfig config) {
-        this.serverWorld = serverWorld;
-        this.structureConnection = structureConnection;
-        this.context = config;
-    }
-
-    public void generateRoad(int maxSteps){
+    public void generateRoad(int maxSteps) {
         // 更新连接状态为"生成中"
         updateConnectionStatus(Records.ConnectionStatus.GENERATING);
-
         RandomSource random = RandomSource.create();
-        int width = getRandomWidth(random, context.getWidths());
-
         IModConfig cfg = ConfigProvider.get();
+
+        int width = getRandomWidth(random, context.getWidths());
         int type = allowedRoadTypes(random, cfg);
         if (type == -1) {
             updateConnectionStatus(Records.ConnectionStatus.FAILED);
             return;
         }
-        List<BlockState> material = (type == 1)
-                ? getRandomMaterials(random, context.getNaturalMaterials())
-                : getRandomMaterials(random, context.getArtificialMaterials());
+        List<BlockState> material = getRandomMaterials(random, type == 1 ? context.getNaturalMaterials() : context.getArtificialMaterials());
 
         BlockPos start = structureConnection.from();
         BlockPos end = structureConnection.to();
@@ -68,26 +61,25 @@ public class Road {
 
         // 完成
         updateConnectionStatus(Records.ConnectionStatus.COMPLETED);
-        
+
         // ✅ 释放道路覆盖的所有区块
         releaseAffectedChunks(roadSegmentPlacementList);
     }
-    
+
     /**
      * 释放道路生成覆盖的所有区块
      */
     private void releaseAffectedChunks(List<Records.RoadSegmentPlacement> roadSegments) {
         try {
             // 提取所有受影响的区块
-            java.util.Set<net.minecraft.world.level.ChunkPos> affectedChunks = 
-                net.countered.settlementroads.chunk.ChunkRoadStateManager.extractAffectedChunks(roadSegments);
-            
+            Set<ChunkPos> affectedChunks = ChunkRoadStateManager.extractAffectedChunks(roadSegments);
+
             // 批量标记为已处理
-            net.countered.settlementroads.chunk.ChunkRoadStateManager.markChunksRoadProcessed(serverWorld, affectedChunks);
+            ChunkRoadStateManager.markChunksRoadProcessed(serverWorld, affectedChunks);
         } catch (Exception e) {
             // 记录错误但不中断流程
-            org.slf4j.LoggerFactory.getLogger("roadweaver")
-                .error("Error releasing affected chunks", e);
+            LoggerFactory.getLogger("roadweaver")
+                    .error("Error releasing affected chunks", e);
         }
     }
 
@@ -96,11 +88,11 @@ public class Road {
         List<Records.StructureConnection> connections = dataProvider.getStructureConnections(serverWorld);
         // 创建可变副本以避免 UnsupportedOperationException
         List<Records.StructureConnection> mutableConnections = new ArrayList<>(connections != null ? connections : new ArrayList<>());
-        
+
         for (int i = 0; i < mutableConnections.size(); i++) {
             Records.StructureConnection conn = mutableConnections.get(i);
             if ((conn.from().equals(structureConnection.from()) && conn.to().equals(structureConnection.to())) ||
-                (conn.from().equals(structureConnection.to()) && conn.to().equals(structureConnection.from()))) {
+                    (conn.from().equals(structureConnection.to()) && conn.to().equals(structureConnection.from()))) {
                 mutableConnections.set(i, new Records.StructureConnection(conn.from(), conn.to(), newStatus, conn.manual()));
                 dataProvider.setStructureConnections(serverWorld, mutableConnections);
                 break;
