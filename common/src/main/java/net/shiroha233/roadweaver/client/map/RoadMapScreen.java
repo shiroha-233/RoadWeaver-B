@@ -9,6 +9,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.shiroha233.roadweaver.network.ClientNetBridge;
+import java.util.concurrent.CompletableFuture;
+import net.shiroha233.roadweaver.util.ComputeService;
 import net.minecraft.core.BlockPos;
 
 
@@ -27,6 +29,7 @@ public class RoadMapScreen extends Screen {
     private static final int GRID_TARGET_PX = 32;
     private static final Component MENU_TELEPORT = Component.translatable("gui.roadweaver.map.menu.teleport");
     private static final Component BTN_CONFIG = Component.translatable("gui.roadweaver.config_button");
+    private static final Component BTN_MANUAL = Component.translatable("gui.roadweaver.map.manual_connect");
     private static final int MENU_BG = 0xF0101010;
     private static final int MENU_BORDER = 0xFFFFFFFF;
     private static final int MENU_HOVER = 0x40FFFFFF;
@@ -52,6 +55,8 @@ public class RoadMapScreen extends Screen {
     private boolean showContextMenu;
     private int menuX, menuY;
     private BlockPos menuTarget;
+    private boolean manualMode;
+    private BlockPos selectedA;
 
     public RoadMapScreen() {
         super(Component.translatable("gui.roadweaver.map.title"));
@@ -60,6 +65,11 @@ public class RoadMapScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        MapSnapshotCache.cancelClear();
+        MapSnapshot cached = MapSnapshotCache.peek();
+        if (cached != null) {
+            this.snapshot = cached;
+        }
         computeMapRect();
         int contentW = mapW - INNER_PAD * 2;
         int contentH = mapH - INNER_PAD * 2;
@@ -153,6 +163,12 @@ public class RoadMapScreen extends Screen {
                 COLOR_STRUCT,
                 left, top, right, bottom
         );
+        if (manualMode && selectedA != null && view.isInViewWorld(selectedA.getX(), selectedA.getZ())) {
+            int sx = view.toScreenX(selectedA.getX(), mapX, INNER_PAD, contentW);
+            int sy = view.toScreenY(selectedA.getZ(), mapY, INNER_PAD, contentH);
+            int selSize = computePointSize() * 2 + 4;
+            RenderUtils.drawPoint(g, sx, sy, selSize, 0xFFFF3B30, left, top, right, bottom);
+        }
         if (!showContextMenu) {
             MapInteraction.renderHoverHighlight(g, snapshot, view, mapX, mapY, mapW, mapH, INNER_PAD, mouseX, mouseY);
         }
@@ -168,6 +184,7 @@ public class RoadMapScreen extends Screen {
                 snapshot.structuresCount(), snapshot.plannedCount(), snapshot.generatingCount(), snapshot.completedCount(), snapshot.failedCount()
         );
         renderConfigButton(g, mouseX, mouseY);
+        renderManualButton(g, mouseX, mouseY);
         if (!showContextMenu) {
             MapInteraction.renderHoverTooltip(g, this.font, snapshot, view, mapX, mapY, mapW, mapH, INNER_PAD, mouseX, mouseY);
         }
@@ -178,7 +195,20 @@ public class RoadMapScreen extends Screen {
         }
 
         if (showContextMenu && menuTarget != null) {
-            renderContextMenu(g, mouseX, mouseY);
+            int[] bounds = MapContextMenu.computeMenuBounds(
+                    this.font, MENU_TELEPORT,
+                    menuX, menuY,
+                    this.width, this.height,
+                    MENU_PAD_X, MENU_PAD_Y, MENU_ITEM_H, MENU_MIN_W
+            );
+            int hover = MapContextMenu.getMenuHoverIndex(mouseX, mouseY, bounds, MENU_PAD_Y, MENU_ITEM_H, 1);
+            MapContextMenu.renderContextMenu(
+                    g, this.font, MENU_TELEPORT,
+                    mouseX, mouseY,
+                    bounds, hover,
+                    MENU_BG, MENU_BORDER, MENU_HOVER, MENU_TEXT,
+                    this.width, this.height
+            );
         }
 
         super.render(g, mouseX, mouseY, partialTick);
@@ -205,9 +235,16 @@ public class RoadMapScreen extends Screen {
         return false;
     }
 
+    @Override
+    public void removed() {
+        super.removed();
+        MapSnapshotCache.scheduleClear(1000);
+    }
+
     public void setSnapshot(MapSnapshot snapshot) {
         if (snapshot != null) {
             this.snapshot = snapshot;
+            MapSnapshotCache.put(snapshot);
         }
     }
 
@@ -232,12 +269,23 @@ public class RoadMapScreen extends Screen {
             openConfig();
             return true;
         }
+        if (button == 0 && insideManualButton((int)mouseX, (int)mouseY)) {
+            manualMode = !manualMode;
+            if (!manualMode) selectedA = null;
+            showContextMenu = false;
+            return true;
+        }
         if (showContextMenu) {
-            int[] bounds = computeMenuBounds();
+            int[] bounds = MapContextMenu.computeMenuBounds(
+                    this.font, MENU_TELEPORT,
+                    menuX, menuY,
+                    this.width, this.height,
+                    MENU_PAD_X, MENU_PAD_Y, MENU_ITEM_H, MENU_MIN_W
+            );
             int bx = bounds[0], by = bounds[1], bw = bounds[2], bh = bounds[3];
             boolean inside = mouseX >= bx && mouseX <= bx + bw && mouseY >= by && mouseY <= by + bh;
             if (inside && button == 0) {
-                int idx = getMenuHoverIndex((int)mouseX, (int)mouseY);
+                int idx = MapContextMenu.getMenuHoverIndex((int)mouseX, (int)mouseY, bounds, MENU_PAD_Y, MENU_ITEM_H, 1);
                 if (idx == 0) {
                     onTeleportSelected();
                     showContextMenu = false;
@@ -246,6 +294,21 @@ public class RoadMapScreen extends Screen {
             } else {
                 showContextMenu = false;
                 // fallthrough to other handling if needed
+            }
+        }
+
+        if (manualMode && insideMap(mouseX, mouseY) && button == 0) {
+            BlockPos best = findNearestStructure(mouseX, mouseY);
+            if (best != null) {
+                if (selectedA == null || selectedA.equals(best)) {
+                    selectedA = best;
+                } else {
+                    ClientNetBridge.requestManualConnect(selectedA.getX(), selectedA.getZ(), best.getX(), best.getZ());
+                    selectedA = null;
+                    requestCurrentView();
+                }
+                showContextMenu = false;
+                return true;
             }
         }
 
@@ -332,6 +395,10 @@ public class RoadMapScreen extends Screen {
         // 适度扩展边界，减少边缘拖拽时的频繁请求
         int pad = 32;
         minX -= pad; maxX += pad; minZ -= pad; maxZ += pad;
+        final int fMinX = minX;
+        final int fMaxX = maxX;
+        final int fMinZ = minZ;
+        final int fMaxZ = maxZ;
 
         Minecraft mc = this.minecraft;
         if (mc == null) return;
@@ -353,7 +420,10 @@ public class RoadMapScreen extends Screen {
                     radiusChunks = 256;
                 }
                 int radiusBlocks = Math.max(1, radiusChunks) * 16;
-                setSnapshot(MapDataCollector.build(level, minX, minZ, maxX, maxZ, cx, cz, radiusBlocks));
+                final int fcx = cx, fcz = cz;
+                CompletableFuture
+                    .supplyAsync(() -> MapDataCollector.build(level, fMinX, fMinZ, fMaxX, fMaxZ, fcx, fcz, radiusBlocks), ComputeService.executor())
+                    .thenAccept(snap -> mc.execute(() -> setSnapshot(snap)));
             }
         } else {
             ClientNetBridge.requestSnapshot(minX, minZ, maxX, maxZ);
@@ -379,54 +449,7 @@ public class RoadMapScreen extends Screen {
         return null;
     }
 
-    private int[] computeMenuBounds() {
-        int cnt = 1;
-        int textW = this.font.width(MENU_TELEPORT);
-        int w = Math.max(MENU_MIN_W, textW + MENU_PAD_X * 2);
-        int h = MENU_PAD_Y * 2 + MENU_ITEM_H * cnt;
-        int x = menuX + 12;
-        int y = menuY - 12;
-        if (x + w > this.width) x = this.width - w - 4;
-        if (y + h > this.height) y = this.height - h - 4;
-        if (x < 4) x = 4;
-        if (y < 4) y = 4;
-        return new int[]{x, y, w, h};
-    }
-
-    private int getMenuHoverIndex(int mx, int my) {
-        int[] b = computeMenuBounds();
-        int x = b[0], y = b[1], w = b[2], h = b[3];
-        if (mx < x || mx > x + w || my < y || my > y + h) return -1;
-        int innerTop = y + MENU_PAD_Y;
-        if (my < innerTop) return -1;
-        int rel = my - innerTop;
-        int idx = rel / MENU_ITEM_H;
-        if (idx < 0) return -1;
-        if (idx > 0) return -1;
-        return 0;
-    }
-
-    private void renderContextMenu(GuiGraphics g, int mouseX, int mouseY) {
-        int[] b = computeMenuBounds();
-        int x = b[0], y = b[1], w = b[2], h = b[3];
-        int shadow = 0x80101010;
-        g.fill(x + 3, y + 3, x + w + 3, y + h + 3, shadow);
-        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, MENU_BORDER);
-        g.fill(x, y, x + w, y + h, MENU_BG);
-        int hover = getMenuHoverIndex(mouseX, mouseY);
-        int itemTop = y + MENU_PAD_Y;
-        if (hover == 0) g.fill(x + 1, itemTop, x + w - 1, itemTop + MENU_ITEM_H, MENU_HOVER);
-        g.fill(x + 1, itemTop + MENU_ITEM_H, x + w - 1, itemTop + MENU_ITEM_H + 1, MENU_BORDER & 0x40FFFFFF);
-        int ty = itemTop + (MENU_ITEM_H - this.font.lineHeight) / 2;
-        g.drawString(this.font, MENU_TELEPORT, x + MENU_PAD_X, ty, MENU_TEXT, false);
-        int baseY = itemTop + MENU_ITEM_H / 2;
-        int tipX = x - 6;
-        int tipY = baseY;
-        int bx1 = x - 1, by1 = baseY - 4;
-        int bx2 = x - 1, by2 = baseY + 4;
-        RenderUtils.fillTriangle(g, tipX, tipY, bx1, by1, bx2, by2, MENU_BORDER, 0, 0, this.width, this.height);
-        RenderUtils.fillTriangle(g, tipX + 1, tipY, bx1, by1 + 1, bx2, by2 - 1, MENU_BG, 0, 0, this.width, this.height);
-    }
+    
 
     private void onTeleportSelected() {
         if (menuTarget == null) return;
@@ -454,6 +477,40 @@ public class RoadMapScreen extends Screen {
         g.drawString(this.font, BTN_CONFIG, x + 3, ty, COLOR_TEXT, false);
         if (insideConfigButton(mouseX, mouseY)) {
             int textW = this.font.width(BTN_CONFIG);
+            int uy = ty + this.font.lineHeight + 1;
+            int underline = (COLOR_TEXT & 0x00FFFFFF) | 0x60000000;
+            g.fill(x + 2, uy, x + 2 + textW + 2, uy + 1, underline);
+        }
+    }
+
+    private Component manualLabel() {
+        Component onoff = manualMode ? Component.translatable("gui.roadweaver.common.on") : Component.translatable("gui.roadweaver.common.off");
+        return Component.empty().append(BTN_MANUAL).append(": ").append(onoff);
+    }
+
+    private int[] computeManualBtnBounds() {
+        Component lbl = manualLabel();
+        int w = this.font.width(lbl) + 6;
+        int h = this.font.lineHeight + 4;
+        int x = mapX + INNER_PAD + 4;
+        int y = mapY + mapH - INNER_PAD - 4 - h;
+        return new int[]{x, y, w, h};
+    }
+
+    private boolean insideManualButton(int mx, int my) {
+        int[] b = computeManualBtnBounds();
+        int x = b[0], y = b[1], w = b[2], h = b[3];
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
+    }
+
+    private void renderManualButton(GuiGraphics g, int mouseX, int mouseY) {
+        int[] b = computeManualBtnBounds();
+        int x = b[0], y = b[1], h = b[3];
+        int ty = y + (h - this.font.lineHeight) / 2;
+        Component lbl = manualLabel();
+        g.drawString(this.font, lbl, x + 3, ty, COLOR_TEXT, false);
+        if (insideManualButton(mouseX, mouseY)) {
+            int textW = this.font.width(lbl);
             int uy = ty + this.font.lineHeight + 1;
             int underline = (COLOR_TEXT & 0x00FFFFFF) | 0x60000000;
             g.fill(x + 2, uy, x + 2 + textW + 2, uy + 1, underline);

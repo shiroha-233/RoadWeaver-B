@@ -20,6 +20,9 @@ public final class RoadStructures {
             } else if (dec instanceof DistanceSignDecoration sign) {
                 sign.setWoodType(WoodSelector.forBiome(sign.getWorld(), sign.getPos()));
                 sign.place();
+            } else if (dec instanceof LanternPostDecoration natLamp) {
+                natLamp.setWoodType(WoodSelector.forBiome(natLamp.getWorld(), natLamp.getPos()));
+                natLamp.place();
             } else if (dec instanceof FenceWaypointDecoration wp) {
                 wp.setWoodType(WoodSelector.forBiome(wp.getWorld(), wp.getPos()));
                 wp.place();

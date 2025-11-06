@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.shiroha233.roadweaver.config.ConfigService;
 import net.shiroha233.roadweaver.config.ModConfig;
+import net.shiroha233.roadweaver.config.PresetService;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -28,6 +29,7 @@ public class ConfigScreenFactoryImpl {
                 .setParentScreen(parent)
                 .setTitle(Component.translatable("config.roadweaver.title"));
 
+        PresetService.reload();
         ModConfig conf = ConfigService.get();
         builder.setSavingRunnable(ConfigService::save);
 
@@ -133,10 +135,25 @@ public class ConfigScreenFactoryImpl {
         );
 
         genSurface.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.allow_natural"), conf.allowNatural())
+                        .setTooltip(Component.translatable("config.roadweaver.allow_natural.tooltip"))
+                        .setSaveConsumer(conf::setAllowNatural)
+                        .build()
+        );
+
+        genSurface.addEntry(
                 eb.startIntField(Component.translatable("config.roadweaver.averaging_radius"), conf.averagingRadius())
                         .setTooltip(Component.translatable("config.roadweaver.averaging_radius.tooltip"))
                         .setMin(0).setMax(64)
                         .setSaveConsumer(conf::setAveragingRadius)
+                        .build()
+        );
+
+        genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.max_slope_step_per_two_segments"), conf.maxSlopeStepPerTwoSegments())
+                        .setTooltip(Component.translatable("config.roadweaver.max_slope_step_per_two_segments.tooltip"))
+                        .setMin(0).setMax(8)
+                        .setSaveConsumer(conf::setMaxSlopeStepPerTwoSegments)
                         .build()
         );
 
@@ -156,7 +173,121 @@ public class ConfigScreenFactoryImpl {
                         .build()
         );
 
+        genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.causeway_max_depth"), conf.causewayMaxDepth())
+                        .setTooltip(Component.translatable("config.roadweaver.causeway_max_depth.tooltip"))
+                        .setMin(0).setMax(12)
+                        .setSaveConsumer(conf::setCausewayMaxDepth)
+                        .build()
+        );
+
+        List<String> selected = new ArrayList<>(conf.selectedArtificialPresetIds() == null ? List.of() : conf.selectedArtificialPresetIds());
+        genSurface.addEntry(
+                eb.startStrList(Component.translatable("config.roadweaver.selected_artificial_preset_ids"), selected)
+                        .setTooltip(Component.translatable("config.roadweaver.selected_artificial_preset_ids.tooltip"))
+                        .setSaveConsumer(conf::setSelectedArtificialPresetIds)
+                        .build()
+        );
+
+        genSurface.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.use_weighted_preset"), conf.useWeightedPreset())
+                        .setTooltip(Component.translatable("config.roadweaver.use_weighted_preset.tooltip"))
+                        .setSaveConsumer(conf::setUseWeightedPreset)
+                        .build()
+        );
+
+        genSurface.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.remove_whole_tree_on_path"), conf.removeWholeTreeOnPath())
+                        .setTooltip(Component.translatable("config.roadweaver.remove_whole_tree_on_path.tooltip"))
+                        .setSaveConsumer(conf::setRemoveWholeTreeOnPath)
+                        .build()
+        );
+        genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.tree_removal_max_radius"), conf.treeRemovalMaxRadius())
+                        .setTooltip(Component.translatable("config.roadweaver.tree_removal_max_radius.tooltip"))
+                        .setMin(2).setMax(12)
+                        .setSaveConsumer(conf::setTreeRemovalMaxRadius)
+                        .build()
+        );
+        genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.tree_removal_max_height"), conf.treeRemovalMaxHeight())
+                        .setTooltip(Component.translatable("config.roadweaver.tree_removal_max_height.tooltip"))
+                        .setMin(8).setMax(64)
+                        .setSaveConsumer(conf::setTreeRemovalMaxHeight)
+                        .build()
+        );
+        genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.tree_removal_max_blocks"), conf.treeRemovalMaxBlocks())
+                        .setTooltip(Component.translatable("config.roadweaver.tree_removal_max_blocks.tooltip"))
+                        .setMin(64).setMax(8192)
+                        .setSaveConsumer(conf::setTreeRemovalMaxBlocks)
+                        .build()
+        );
+        genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.tree_leaves_confirm"), conf.treeLeavesConfirm())
+                        .setTooltip(Component.translatable("config.roadweaver.tree_leaves_confirm.tooltip"))
+                        .setMin(0).setMax(128)
+                        .setSaveConsumer(conf::setTreeLeavesConfirm)
+                        .build()
+        );
+
         
+        // 桥梁设置
+        ConfigCategory bridge = builder.getOrCreateCategory(Component.translatable("config.roadweaver.category.bridge"));
+        bridge.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.bridge_enabled"), conf.bridgeEnabled())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_enabled.tooltip"))
+                        .setSaveConsumer(conf::setBridgeEnabled)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.bridge_deck_clearance"), conf.bridgeDeckClearance())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_deck_clearance.tooltip"))
+                        .setMin(1).setMax(8)
+                        .setSaveConsumer(conf::setBridgeDeckClearance)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.bridge_railing_enabled"), conf.bridgeRailingEnabled())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_railing_enabled.tooltip"))
+                        .setSaveConsumer(conf::setBridgeRailingEnabled)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.bridge_pier_interval"), conf.bridgePierInterval())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_pier_interval.tooltip"))
+                        .setMin(3).setMax(32)
+                        .setSaveConsumer(conf::setBridgePierInterval)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.bridge_pier_width"), conf.bridgePierWidth())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_pier_width.tooltip"))
+                        .setMin(1).setMax(3)
+                        .setSaveConsumer(conf::setBridgePierWidth)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.bridge_pier_max_height"), conf.bridgePierMaxHeight())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_pier_max_height.tooltip"))
+                        .setMin(6).setMax(64)
+                        .setSaveConsumer(conf::setBridgePierMaxHeight)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.bridge_keep_lamps"), conf.bridgeKeepLamps())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_keep_lamps.tooltip"))
+                        .setSaveConsumer(conf::setBridgeKeepLamps)
+                        .build()
+        );
+        bridge.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.bridge_ramp_segments"), conf.bridgeRampSegments())
+                        .setTooltip(Component.translatable("config.roadweaver.bridge_ramp_segments.tooltip"))
+                        .setMin(0).setMax(12)
+                        .setSaveConsumer(conf::setBridgeRampSegments)
+                        .build()
+        );
+
 
         ConfigCategory genPerformance = builder.getOrCreateCategory(Component.translatable("config.roadweaver.category.gen_performance"));
 

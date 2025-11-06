@@ -7,9 +7,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.shiroha233.roadweaver.features.config.RoadFeatureConfig;
 import net.shiroha233.roadweaver.features.roadlogic.Road;
+import net.shiroha233.roadweaver.features.roadlogic.RoadPathCalculator;
 import net.shiroha233.roadweaver.helpers.Records;
 import net.shiroha233.roadweaver.persistence.WorldDataProvider;
 import net.shiroha233.roadweaver.planning.PlanningUtils;
+import net.shiroha233.roadweaver.planning.RoadPlanningService;
 import net.shiroha233.roadweaver.config.ConfigService;
 
 import java.util.ArrayList;
@@ -37,6 +39,8 @@ public final class RoadGenerationService {
         QUEUES.clear();
         PROCESSED.clear();
         RUNNING_COUNT.clear();
+        RoadPathCalculator.clearCaches();
+        RoadPlanningService.resetAll();
     }
 
     /**
@@ -77,6 +81,11 @@ public final class RoadGenerationService {
                 }
             }
             provider.setStructureConnections(level, all);
+            {
+                long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+                ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+                if (proc != null) proc.remove(k);
+            }
         } catch (Throwable t) {
             // 标记 FAILED
             List<Records.StructureConnection> all = new ArrayList<>(provider.getStructureConnections(level));
@@ -87,6 +96,11 @@ public final class RoadGenerationService {
                 }
             }
             provider.setStructureConnections(level, all);
+            {
+                long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+                ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+                if (proc != null) proc.remove(k);
+            }
         }
     }
 
@@ -104,6 +118,7 @@ public final class RoadGenerationService {
 
     public static void tick(ServerLevel level) {
         refreshQueue(level);
+        ALL_RUNNING.removeIf(f -> f == null || f.isDone() || f.isCancelled());
         ConcurrentLinkedQueue<Records.StructureConnection> q = QUEUES.computeIfAbsent(level, l -> new ConcurrentLinkedQueue<>());
         if (q.isEmpty()) return;
         if (EXECUTOR == null || EXECUTOR.isShutdown() || EXECUTOR.isTerminated()) {
@@ -179,6 +194,11 @@ public final class RoadGenerationService {
                 }
             }
             provider.setStructureConnections(level, all);
+            {
+                long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+                ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+                if (proc != null) proc.remove(k);
+            }
         } catch (Throwable t) {
             WorldDataProvider provider = WorldDataProvider.getInstance();
             List<Records.StructureConnection> all = new ArrayList<>(provider.getStructureConnections(level));
@@ -189,6 +209,11 @@ public final class RoadGenerationService {
                 }
             }
             provider.setStructureConnections(level, all);
+            {
+                long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+                ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+                if (proc != null) proc.remove(k);
+            }
         }
     }
 

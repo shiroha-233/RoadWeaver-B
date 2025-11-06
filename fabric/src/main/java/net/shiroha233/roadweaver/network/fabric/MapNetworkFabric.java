@@ -1,5 +1,8 @@
 package net.shiroha233.roadweaver.network.fabric;
 
+import java.util.concurrent.CompletableFuture;
+import net.shiroha233.roadweaver.util.ComputeService;
+
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -12,63 +15,44 @@ import net.shiroha233.roadweaver.client.map.RoadMapScreen;
 import net.shiroha233.roadweaver.network.MapSnapshotCodec;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.network.chat.Component;
+import net.shiroha233.roadweaver.helpers.Records;
+import net.shiroha233.roadweaver.persistence.WorldDataProvider;
+import net.minecraft.core.BlockPos;
 
 
 public class MapNetworkFabric {
-    public static final ResourceLocation REQ = new ResourceLocation("roadweaver", "map_request");
     public static final ResourceLocation REQ_RECT = new ResourceLocation("roadweaver", "map_request_rect");
     public static final ResourceLocation SNAP = new ResourceLocation("roadweaver", "map_snapshot");
     public static final ResourceLocation TP_REQ = new ResourceLocation("roadweaver", "map_teleport");
     public static final ResourceLocation TP_ACK = new ResourceLocation("roadweaver", "map_teleport_ack");
+    public static final ResourceLocation MAN_REQ = new ResourceLocation("roadweaver", "map_manual_connect");
 
     public static void registerServerReceivers() {
-        ServerPlayNetworking.registerGlobalReceiver(REQ, (server, player, handler, buf, responseSender) -> {
-            server.execute(() -> {
-                ServerPlayer sp = player;
-                int cx = (int) Math.round(sp.getX());
-                int cz = (int) Math.round(sp.getZ());
-                int radiusChunks;
-                try {
-                    net.shiroha233.roadweaver.config.ModConfig cfg = net.shiroha233.roadweaver.config.ConfigService.get();
-                    radiusChunks = (cfg.dynamicPlanEnabled() ? cfg.dynamicPlanRadiusChunks() : cfg.initialPlanRadiusChunks());
-                } catch (Throwable t) {
-                    radiusChunks = 256;
-                }
-                int radiusBlocks = Math.max(1, radiusChunks) * 16;
-                int minX = cx - radiusBlocks;
-                int minZ = cz - radiusBlocks;
-                int maxX = cx + radiusBlocks;
-                int maxZ = cz + radiusBlocks;
-                MapSnapshot snap = MapDataCollector.build(sp.serverLevel(), minX, minZ, maxX, maxZ, cx, cz, radiusBlocks);
-                FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
-                MapSnapshotCodec.write(out, snap);
-                ServerPlayNetworking.send(sp, SNAP, out);
-            });
-        });
-
         // 矩形范围请求：minX,minZ,maxX,maxZ
         ServerPlayNetworking.registerGlobalReceiver(REQ_RECT, (server, player, handler, buf, responseSender) -> {
             int minX = buf.readVarInt();
             int minZ = buf.readVarInt();
             int maxX = buf.readVarInt();
             int maxZ = buf.readVarInt();
-            server.execute(() -> {
-                ServerPlayer sp = player;
-                int cx = (int) Math.round(sp.getX());
-                int cz = (int) Math.round(sp.getZ());
-                int radiusChunks;
-                try {
-                    net.shiroha233.roadweaver.config.ModConfig cfg = net.shiroha233.roadweaver.config.ConfigService.get();
-                    radiusChunks = (cfg.dynamicPlanEnabled() ? cfg.dynamicPlanRadiusChunks() : cfg.initialPlanRadiusChunks());
-                } catch (Throwable t) {
-                    radiusChunks = 256;
-                }
-                int radiusBlocks = Math.max(1, radiusChunks) * 16;
-                MapSnapshot snap = MapDataCollector.build(sp.serverLevel(), minX, minZ, maxX, maxZ, cx, cz, radiusBlocks);
-                FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
-                MapSnapshotCodec.write(out, snap);
-                ServerPlayNetworking.send(sp, SNAP, out);
-            });
+            ServerPlayer sp = player;
+            int cx = (int) Math.round(sp.getX());
+            int cz = (int) Math.round(sp.getZ());
+            int radiusChunks;
+            try {
+                net.shiroha233.roadweaver.config.ModConfig cfg = net.shiroha233.roadweaver.config.ConfigService.get();
+                radiusChunks = (cfg.dynamicPlanEnabled() ? cfg.dynamicPlanRadiusChunks() : cfg.initialPlanRadiusChunks());
+            } catch (Throwable t) {
+                radiusChunks = 256;
+            }
+            int radiusBlocks = Math.max(1, radiusChunks) * 16;
+            CompletableFuture
+                .supplyAsync(() -> {
+                    MapSnapshot snapshot = MapDataCollector.build(sp.serverLevel(), minX, minZ, maxX, maxZ, cx, cz, radiusBlocks);
+                    FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
+                    MapSnapshotCodec.write(out, snapshot);
+                    return out;
+                }, ComputeService.executor())
+                .thenAccept(out -> server.execute(() -> ServerPlayNetworking.send(sp, SNAP, out)));
         });
 
         ServerPlayNetworking.registerGlobalReceiver(TP_REQ, (server, player, handler, buf, responseSender) -> {
@@ -95,6 +79,33 @@ public class MapNetworkFabric {
                 out.writeVarInt(ty);
                 out.writeVarInt(z);
                 ServerPlayNetworking.send(sp, TP_ACK, out);
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(MAN_REQ, (server, player, handler, buf, responseSender) -> {
+            int ax = buf.readVarInt();
+            int az = buf.readVarInt();
+            int bx = buf.readVarInt();
+            int bz = buf.readVarInt();
+            server.execute(() -> {
+                ServerPlayer sp = player;
+                if (sp == null) return;
+                var level = sp.serverLevel();
+                WorldDataProvider provider = WorldDataProvider.getInstance();
+                java.util.List<Records.StructureConnection> origin = provider.getStructureConnections(level);
+                java.util.List<Records.StructureConnection> list = origin != null ? new java.util.ArrayList<>(origin) : new java.util.ArrayList<>();
+                BlockPos a = new BlockPos(ax, 0, az);
+                BlockPos b = new BlockPos(bx, 0, bz);
+                boolean exists = false;
+                for (Records.StructureConnection c : list) {
+                    BlockPos f = c.from();
+                    BlockPos t = c.to();
+                    if ((f.equals(a) && t.equals(b)) || (f.equals(b) && t.equals(a))) { exists = true; break; }
+                }
+                if (!exists) {
+                    list.add(new Records.StructureConnection(a, b, Records.ConnectionStatus.PLANNED));
+                    provider.setStructureConnections(level, list);
+                }
             });
         });
     }
@@ -140,5 +151,14 @@ public class MapNetworkFabric {
         out.writeVarInt(y);
         out.writeVarInt(z);
         ClientPlayNetworking.send(TP_REQ, out);
+    }
+
+    public static void requestManualConnect(int ax, int az, int bx, int bz) {
+        FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
+        out.writeVarInt(ax);
+        out.writeVarInt(az);
+        out.writeVarInt(bx);
+        out.writeVarInt(bz);
+        ClientPlayNetworking.send(MAN_REQ, out);
     }
 }

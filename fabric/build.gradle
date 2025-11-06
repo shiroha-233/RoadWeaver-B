@@ -96,6 +96,7 @@ sourceSets {
         }
         resources {
             exclude 'assets/roadweaver/lang/*.json'
+            exclude 'pack.mcmeta'
         }
     }
 }

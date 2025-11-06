@@ -26,6 +26,7 @@ public class LamppostDecoration extends OrientedDecoration implements BiomeWoodA
         if (!placeAllowed()) return;
         BlockPos basePos = this.getPos();
         WorldGenLevel world = this.getWorld();
+        if (this.leftRoadSide) { }
         placeLampStructure(basePos, world);
     }
 

@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.shiroha233.roadweaver.helpers.Records;
 import net.shiroha233.roadweaver.persistence.WorldDataProvider;
+import net.shiroha233.roadweaver.persistence.sharded.RoadShardStorage;
 import net.minecraft.world.level.Level;
 import net.shiroha233.roadweaver.search.StructurePredictor;
 import net.shiroha233.roadweaver.config.ConfigService;
@@ -26,19 +27,23 @@ public final class MapDataCollector {
         List<Records.StructureConnection> conns = (connections != null) ? new ArrayList<>(connections) : new ArrayList<>();
         List<Records.StructureInfo> infos = (loc != null) ? new ArrayList<>(loc.structureInfos()) : new ArrayList<>();
         List<List<BlockPos>> roads = new ArrayList<>();
-        List<Records.RoadData> roadDataList = provider.getRoadDataList(level);
-        if (roadDataList != null) {
-            for (Records.RoadData rd : roadDataList) {
-                List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
-                if (segs == null || segs.isEmpty()) continue;
-                ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
-                for (Records.RoadSegmentPlacement sp : segs) poly.add(sp.middlePos());
-                if (poly.size() >= 2) roads.add(poly);
-            }
+        ModConfig cfg = ConfigService.get();
+        BlockPos spawn = level.getSharedSpawnPos();
+        int radiusChunks = Math.max(1, cfg.initialPlanRadiusChunks());
+        int minX = (((spawn.getX() >> 4) - radiusChunks) * 16);
+        int maxX = (((spawn.getX() >> 4) + radiusChunks) * 16);
+        int minZ = (((spawn.getZ() >> 4) - radiusChunks) * 16);
+        int maxZ = (((spawn.getZ() >> 4) + radiusChunks) * 16);
+        List<Records.RoadData> roadDataList = RoadShardStorage.queryRect(level, minX, minZ, maxX, maxZ);
+        for (Records.RoadData rd : roadDataList) {
+            List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
+            if (segs == null || segs.isEmpty()) continue;
+            ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
+            for (Records.RoadSegmentPlacement sp : segs) poly.add(sp.middlePos());
+            if (poly.size() >= 2) roads.add(poly);
         }
 
         if (Level.OVERWORLD.equals(level.dimension())) {
-            ModConfig cfg = ConfigService.get();
             if (cfg.villagePredictionEnabled()) {
                 List<Records.StructureInfo> predicted = StructurePredictor.predictOverworldStructuresAroundSpawn(
                         level,
@@ -128,19 +133,17 @@ public final class MapDataCollector {
         }
 
         List<List<BlockPos>> roads = new ArrayList<>();
-        List<Records.RoadData> roadDataList = provider.getRoadDataList(level);
-        if (roadDataList != null) {
-            for (Records.RoadData rd : roadDataList) {
-                List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
-                if (segs == null || segs.isEmpty()) continue;
-                ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
-                for (Records.RoadSegmentPlacement sp : segs) {
-                    BlockPos p = sp.middlePos();
-                    int x = p.getX(), z = p.getZ();
-                    if (x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ) poly.add(p);
-                }
-                if (poly.size() >= 2) roads.add(poly);
+        List<Records.RoadData> roadDataList = RoadShardStorage.queryRect(level, minBlockX, minBlockZ, maxBlockX, maxBlockZ);
+        for (Records.RoadData rd : roadDataList) {
+            List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
+            if (segs == null || segs.isEmpty()) continue;
+            ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
+            for (Records.RoadSegmentPlacement sp : segs) {
+                BlockPos p = sp.middlePos();
+                int x = p.getX(), z = p.getZ();
+                if (x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ) poly.add(p);
             }
+            if (poly.size() >= 2) roads.add(poly);
         }
 
         return new MapSnapshot(structures, conns, infos, roads);
@@ -311,22 +314,19 @@ public final class MapDataCollector {
         }
 
         List<List<BlockPos>> roads = new ArrayList<>();
-        List<Records.RoadData> roadDataList = provider.getRoadDataList(level);
-        if (roadDataList != null) {
-            for (Records.RoadData rd : roadDataList) {
-                List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
-                if (segs == null || segs.isEmpty()) continue;
-                ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
-                for (Records.RoadSegmentPlacement sp : segs) {
-                    BlockPos p = sp.middlePos();
-                    int x = p.getX(), z = p.getZ();
-                    // 道路仅按矩形过滤（任何已生成/规划的道路都属于“已触发范围”）
-                    if (x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ) {
-                        poly.add(p);
-                    }
+        List<Records.RoadData> roadDataList = RoadShardStorage.queryRect(level, minBlockX, minBlockZ, maxBlockX, maxBlockZ);
+        for (Records.RoadData rd : roadDataList) {
+            List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
+            if (segs == null || segs.isEmpty()) continue;
+            ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
+            for (Records.RoadSegmentPlacement sp : segs) {
+                BlockPos p = sp.middlePos();
+                int x = p.getX(), z = p.getZ();
+                if (x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ) {
+                    poly.add(p);
                 }
-                if (poly.size() >= 2) roads.add(poly);
             }
+            if (poly.size() >= 2) roads.add(poly);
         }
 
         return new MapSnapshot(structures, conns, infos, roads);

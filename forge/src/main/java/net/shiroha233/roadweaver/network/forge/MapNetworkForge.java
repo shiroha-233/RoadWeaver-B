@@ -16,6 +16,8 @@ import net.shiroha233.roadweaver.network.MapSnapshotCodec;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import net.shiroha233.roadweaver.util.ComputeService;
 import java.util.function.Supplier;
 
 public class MapNetworkForge {
@@ -32,6 +34,7 @@ public class MapNetworkForge {
         CHANNEL.registerMessage(id++, MapSnapshotS2C.class, MapSnapshotS2C::encode, MapSnapshotS2C::decode, MapSnapshotS2C::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(id++, TeleportC2S.class, TeleportC2S::encode, TeleportC2S::decode, TeleportC2S::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(id++, TeleportAckS2C.class, TeleportAckS2C::encode, TeleportAckS2C::decode, TeleportAckS2C::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id++, ManualConnectC2S.class, ManualConnectC2S::encode, ManualConnectC2S::decode, ManualConnectC2S::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
     }
 
     public static class RequestMapSnapshotC2S {
@@ -54,9 +57,8 @@ public class MapNetworkForge {
         }
         public static void handle(RequestMapSnapshotC2S msg, Supplier<NetworkEvent.Context> ctx) {
             NetworkEvent.Context c = ctx.get();
-            c.enqueueWork(() -> {
-                var player = c.getSender();
-                if (player == null) return;
+            var player = c.getSender();
+            if (player != null) {
                 int cx = (int) Math.round(player.getX());
                 int cz = (int) Math.round(player.getZ());
                 int radiusChunks;
@@ -67,9 +69,10 @@ public class MapNetworkForge {
                     radiusChunks = 256;
                 }
                 int radiusBlocks = Math.max(1, radiusChunks) * 16;
-                MapSnapshot snap = MapDataCollector.build(player.serverLevel(), msg.minX, msg.minZ, msg.maxX, msg.maxZ, cx, cz, radiusBlocks);
-                CHANNEL.sendTo(new MapSnapshotS2C(snap), player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
-            });
+                CompletableFuture
+                    .supplyAsync(() -> MapDataCollector.build(player.serverLevel(), msg.minX, msg.minZ, msg.maxX, msg.maxZ, cx, cz, radiusBlocks), ComputeService.executor())
+                    .thenAccept(snap -> c.enqueueWork(() -> CHANNEL.sendTo(new MapSnapshotS2C(snap), player.connection.connection, NetworkDirection.PLAY_TO_CLIENT)));
+            }
             c.setPacketHandled(true);
         }
     }
@@ -152,5 +155,45 @@ public class MapNetworkForge {
 
     public static void requestTeleport(int x, int y, int z) {
         CHANNEL.sendToServer(new TeleportC2S(x, y, z));
+    }
+
+    public static class ManualConnectC2S {
+        public final int ax, az, bx, bz;
+        public ManualConnectC2S(int ax, int az, int bx, int bz) { this.ax = ax; this.az = az; this.bx = bx; this.bz = bz; }
+        public static void encode(ManualConnectC2S msg, FriendlyByteBuf buf) {
+            buf.writeVarInt(msg.ax); buf.writeVarInt(msg.az); buf.writeVarInt(msg.bx); buf.writeVarInt(msg.bz);
+        }
+        public static ManualConnectC2S decode(FriendlyByteBuf buf) {
+            int ax = buf.readVarInt(); int az = buf.readVarInt(); int bx = buf.readVarInt(); int bz = buf.readVarInt();
+            return new ManualConnectC2S(ax, az, bx, bz);
+        }
+        public static void handle(ManualConnectC2S msg, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> {
+                var sp = c.getSender();
+                if (sp == null) return;
+                var level = sp.serverLevel();
+                net.shiroha233.roadweaver.persistence.WorldDataProvider provider = net.shiroha233.roadweaver.persistence.WorldDataProvider.getInstance();
+                java.util.List<net.shiroha233.roadweaver.helpers.Records.StructureConnection> origin = provider.getStructureConnections(level);
+                java.util.List<net.shiroha233.roadweaver.helpers.Records.StructureConnection> list = origin != null ? new java.util.ArrayList<>(origin) : new java.util.ArrayList<>();
+                net.minecraft.core.BlockPos a = new net.minecraft.core.BlockPos(msg.ax, 0, msg.az);
+                net.minecraft.core.BlockPos b = new net.minecraft.core.BlockPos(msg.bx, 0, msg.bz);
+                boolean exists = false;
+                for (net.shiroha233.roadweaver.helpers.Records.StructureConnection sc : list) {
+                    net.minecraft.core.BlockPos f = sc.from();
+                    net.minecraft.core.BlockPos t = sc.to();
+                    if ((f.equals(a) && t.equals(b)) || (f.equals(b) && t.equals(a))) { exists = true; break; }
+                }
+                if (!exists) {
+                    list.add(new net.shiroha233.roadweaver.helpers.Records.StructureConnection(a, b, net.shiroha233.roadweaver.helpers.Records.ConnectionStatus.PLANNED));
+                    provider.setStructureConnections(level, list);
+                }
+            });
+            c.setPacketHandled(true);
+        }
+    }
+
+    public static void requestManualConnect(int ax, int az, int bx, int bz) {
+        CHANNEL.sendToServer(new ManualConnectC2S(ax, az, bx, bz));
     }
 }

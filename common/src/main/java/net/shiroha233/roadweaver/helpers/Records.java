@@ -116,13 +116,14 @@ public final class Records {
         );
     }
 
-    public record RoadData(int width, int roadType, List<BlockState> materials, List<RoadSegmentPlacement> roadSegmentList, List<RoadSpan> spans) {
+    public record RoadData(int width, int roadType, List<BlockState> materials, List<RoadSegmentPlacement> roadSegmentList, List<RoadSpan> spans, List<Integer> targetY) {
         public static final Codec<RoadData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.INT.fieldOf("width").forGetter(RoadData::width),
                 Codec.INT.fieldOf("road_type").forGetter(RoadData::roadType),
                 BlockState.CODEC.listOf().fieldOf("materials").forGetter(RoadData::materials),
                 RoadSegmentPlacement.CODEC.listOf().fieldOf("placements").forGetter(RoadData::roadSegmentList),
-                RoadSpan.CODEC.listOf().optionalFieldOf("spans", new ArrayList<>()).forGetter(RoadData::spans)
+                RoadSpan.CODEC.listOf().optionalFieldOf("spans", new ArrayList<>()).forGetter(RoadData::spans),
+                Codec.INT.listOf().optionalFieldOf("target_y", new ArrayList<>()).forGetter(RoadData::targetY)
         ).apply(instance, RoadData::new));
     }
 }

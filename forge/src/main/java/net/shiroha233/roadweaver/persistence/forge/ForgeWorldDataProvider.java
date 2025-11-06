@@ -15,6 +15,10 @@ import net.minecraft.world.level.saveddata.SavedData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.HashMap;
 
 /**
  * Forge 端世界数据提供者实现，使用 SavedData 在 ServerLevel 持久化存储。
@@ -30,12 +34,14 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
     public static class Data extends SavedData {
         private Records.StructureLocationData structureLocations = new Records.StructureLocationData(new ArrayList<>());
         private List<Records.StructureConnection> connections = new ArrayList<>();
-        private List<Records.RoadData> roadDataList = new ArrayList<>();
+        private Set<Long> plannedTileKeys = new HashSet<>();
+        private Map<Long, Long> plannedTileCenters = new HashMap<>();
 
         // NBT 字段名
         private static final String KEY_LOCATIONS = "structure_locations";
         private static final String KEY_CONNECTIONS = "connections";
-        private static final String KEY_ROAD_DATA_LIST = "road_chunk_data_map";
+        private static final String KEY_PLANNED_TILES = "planned_tiles";
+        private static final String KEY_PLANNED_TILE_CENTERS = "planned_tile_centers";
 
         public Data() {}
 
@@ -57,11 +63,18 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
                 res.result().ifPresent(val -> data.connections = val);
             }
 
-            // 道路数据（从 ListTag 读取）
-            if (tag.contains(KEY_ROAD_DATA_LIST)) {
-                Tag roadTag = tag.get(KEY_ROAD_DATA_LIST);
-                DataResult<List<Records.RoadData>> res = Codec.list(Records.RoadData.CODEC).parse(new Dynamic<>(ops, roadTag));
-                res.result().ifPresent(val -> data.roadDataList = val);
+            // legacy road data list is no longer loaded
+
+            if (tag.contains(KEY_PLANNED_TILES)) {
+                Tag t = tag.get(KEY_PLANNED_TILES);
+                DataResult<List<Long>> res = Codec.list(Codec.LONG).parse(new Dynamic<>(ops, t));
+                res.result().ifPresent(list -> data.plannedTileKeys = new HashSet<>(list));
+            }
+
+            if (tag.contains(KEY_PLANNED_TILE_CENTERS)) {
+                Tag t = tag.get(KEY_PLANNED_TILE_CENTERS);
+                DataResult<Map<Long, Long>> res = Codec.unboundedMap(Codec.LONG, Codec.LONG).parse(new Dynamic<>(ops, t));
+                res.result().ifPresent(map -> data.plannedTileCenters = map);
             }
 
             return data;
@@ -81,10 +94,15 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
                     .result()
                     .ifPresent(nbt -> tag.put(KEY_CONNECTIONS, nbt));
 
-            // 道路数据（List 编码为 ListTag）
-            Codec.list(Records.RoadData.CODEC).encodeStart(ops, roadDataList)
+            // no longer saving legacy road data list
+
+            Codec.list(Codec.LONG).encodeStart(ops, new java.util.ArrayList<>(plannedTileKeys))
                     .result()
-                    .ifPresent(nbt -> tag.put(KEY_ROAD_DATA_LIST, nbt));
+                    .ifPresent(nbt -> tag.put(KEY_PLANNED_TILES, nbt));
+
+            Codec.unboundedMap(Codec.LONG, Codec.LONG).encodeStart(ops, plannedTileCenters)
+                    .result()
+                    .ifPresent(nbt -> tag.put(KEY_PLANNED_TILE_CENTERS, nbt));
 
             return tag;
         }
@@ -108,12 +126,23 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
             setDirty();
         }
 
-        public List<Records.RoadData> getRoadDataList() {
-            return roadDataList;
+        // removed legacy road data list accessors
+
+        public Set<Long> getPlannedTileKeys() {
+            return plannedTileKeys;
         }
 
-        public void setRoadDataList(List<Records.RoadData> list) {
-            this.roadDataList = Objects.requireNonNullElseGet(list, ArrayList::new);
+        public void setPlannedTileKeys(Set<Long> keys) {
+            this.plannedTileKeys = Objects.requireNonNullElseGet(keys, HashSet::new);
+            setDirty();
+        }
+
+        public Map<Long, Long> getPlannedTileCenters() {
+            return plannedTileCenters;
+        }
+
+        public void setPlannedTileCenters(Map<Long, Long> centers) {
+            this.plannedTileCenters = Objects.requireNonNullElseGet(centers, HashMap::new);
             setDirty();
         }
     }
@@ -142,13 +171,25 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
         getOrCreate(level).setConnections(connections);
     }
 
+    // removed legacy road data list overrides
+
     @Override
-    public List<Records.RoadData> getRoadDataList(ServerLevel level) {
-        return getOrCreate(level).getRoadDataList();
+    public Set<Long> getPlannedTileKeys(ServerLevel level) {
+        return getOrCreate(level).getPlannedTileKeys();
     }
 
     @Override
-    public void setRoadDataList(ServerLevel level, List<Records.RoadData> roadDataList) {
-        getOrCreate(level).setRoadDataList(roadDataList);
+    public void setPlannedTileKeys(ServerLevel level, Set<Long> keys) {
+        getOrCreate(level).setPlannedTileKeys(keys);
+    }
+
+    @Override
+    public Map<Long, Long> getPlannedTileCenters(ServerLevel level) {
+        return getOrCreate(level).getPlannedTileCenters();
+    }
+
+    @Override
+    public void setPlannedTileCenters(ServerLevel level, Map<Long, Long> centers) {
+        getOrCreate(level).setPlannedTileCenters(centers);
     }
 }

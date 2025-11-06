@@ -18,9 +18,8 @@ import java.util.List;
 public abstract class MinecraftServerMixin {
     @Inject(method = "prepareLevels", at = @At("HEAD"))
     private void roadweaver$preloadBeforePrepareLevels(ChunkProgressListener listener, CallbackInfo ci) {
-        MinecraftServer self = (MinecraftServer)(Object)this;
-        if (self.isDedicatedServer()) return;
-        ServerLevel level = self.overworld();
+        if (((MinecraftServer)(Object)this).isDedicatedServer()) return;
+        ServerLevel level = ((MinecraftServer)(Object)this).overworld();
         if (level == null) return;
         List<Records.StructureConnection> conns = WorldDataProvider.getInstance().getStructureConnections(level);
         if (conns == null || conns.isEmpty()) {
@@ -31,3 +30,4 @@ public abstract class MinecraftServerMixin {
         }
     }
 }
+

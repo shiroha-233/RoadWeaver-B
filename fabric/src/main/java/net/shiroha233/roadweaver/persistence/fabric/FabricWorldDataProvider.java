@@ -8,6 +8,8 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 
 public class FabricWorldDataProvider extends WorldDataProvider {
 
@@ -33,12 +35,22 @@ public class FabricWorldDataProvider extends WorldDataProvider {
     }
 
     @Override
-    public List<Records.RoadData> getRoadDataList(ServerLevel level) {
-        return ((AttachmentTarget) level).getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new);
+    public Set<Long> getPlannedTileKeys(ServerLevel level) {
+        return ((AttachmentTarget) level).getAttachedOrCreate(WorldDataAttachment.PLANNED_TILE_KEYS, java.util.HashSet::new);
     }
 
     @Override
-    public void setRoadDataList(ServerLevel level, List<Records.RoadData> roadDataList) {
-        ((AttachmentTarget) level).setAttached(WorldDataAttachment.ROAD_DATA_LIST, roadDataList);
+    public void setPlannedTileKeys(ServerLevel level, Set<Long> keys) {
+        ((AttachmentTarget) level).setAttached(WorldDataAttachment.PLANNED_TILE_KEYS, keys);
+    }
+
+    @Override
+    public Map<Long, Long> getPlannedTileCenters(ServerLevel level) {
+        return ((AttachmentTarget) level).getAttachedOrCreate(WorldDataAttachment.PLANNED_TILE_CENTERS, java.util.HashMap::new);
+    }
+
+    @Override
+    public void setPlannedTileCenters(ServerLevel level, Map<Long, Long> centers) {
+        ((AttachmentTarget) level).setAttached(WorldDataAttachment.PLANNED_TILE_CENTERS, centers);
     }
 }

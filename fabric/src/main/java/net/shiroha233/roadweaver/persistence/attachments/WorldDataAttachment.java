@@ -26,9 +26,15 @@ public class WorldDataAttachment {
             Records.StructureLocationData.CODEC
     );
 
-    public static final AttachmentType<List<Records.RoadData>> ROAD_DATA_LIST = AttachmentRegistry.createPersistent(
-            new ResourceLocation(RoadWeaver.MOD_ID, "road_chunk_data_map"),
-            Codec.list(Records.RoadData.CODEC)
+
+    public static final AttachmentType<java.util.Set<Long>> PLANNED_TILE_KEYS = AttachmentRegistry.createPersistent(
+            new ResourceLocation(RoadWeaver.MOD_ID, "planned_tiles"),
+            Codec.list(Codec.LONG).xmap(list -> new java.util.HashSet<>(list), set -> new java.util.ArrayList<>(set))
+    );
+
+    public static final AttachmentType<java.util.Map<Long, Long>> PLANNED_TILE_CENTERS = AttachmentRegistry.createPersistent(
+            new ResourceLocation(RoadWeaver.MOD_ID, "planned_tile_centers"),
+            Codec.unboundedMap(Codec.LONG, Codec.LONG)
     );
 
 

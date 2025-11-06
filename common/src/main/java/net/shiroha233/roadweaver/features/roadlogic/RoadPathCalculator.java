@@ -32,6 +32,15 @@ public final class RoadPathCalculator {
     public static final Map<Long, Integer> oceanFloorCache = new ConcurrentHashMap<>();
     public static final Map<Long, Boolean> nearWaterCache = new ConcurrentHashMap<>();
     public static final Map<Long, Boolean> columnWaterCache = new ConcurrentHashMap<>();
+    private static final int MAX_CACHE_ENTRIES = 200_000;
+
+    private static void pruneCachesIfTooLarge() {
+        if (heightCache.size() > MAX_CACHE_ENTRIES) heightCache.clear();
+        if (waterCache.size() > MAX_CACHE_ENTRIES) waterCache.clear();
+        if (oceanFloorCache.size() > MAX_CACHE_ENTRIES) oceanFloorCache.clear();
+        if (nearWaterCache.size() > MAX_CACHE_ENTRIES) nearWaterCache.clear();
+        if (columnWaterCache.size() > MAX_CACHE_ENTRIES) columnWaterCache.clear();
+    }
 
     private static long hashXZ(int x, int z) {
         return ((long) x << 32) | (z & 0xffffffffL);
@@ -54,8 +63,6 @@ public final class RoadPathCalculator {
         return land;
     }
 
-    
-
     static int calculateTerrainStability(BlockPos pos, int y, ServerLevel level) {
         int cost = 0;
         if (Math.abs(heightSampler(pos.getX() + 1, pos.getZ(), level) - y) > 0) cost++;
@@ -65,9 +72,8 @@ public final class RoadPathCalculator {
         return cost;
     }
 
-    
-
     static int heightSampler(int x, int z, ServerLevel level) {
+        pruneCachesIfTooLarge();
         long key = hashXZ(x, z);
         return heightCache.computeIfAbsent(key, k -> {
             RandomState rs = level.getChunkSource().getGeneratorState().randomState();
@@ -76,6 +82,7 @@ public final class RoadPathCalculator {
     }
 
     static boolean isWaterLike(int x, int z, ServerLevel level) {
+        pruneCachesIfTooLarge();
         long key = hashXZ(x, z);
         Boolean v = waterCache.get(key);
         if (v != null) return v;
@@ -86,6 +93,7 @@ public final class RoadPathCalculator {
     }
 
     static int oceanFloorSampler(int x, int z, ServerLevel level) {
+        pruneCachesIfTooLarge();
         long key = hashXZ(x, z);
         return oceanFloorCache.computeIfAbsent(key, k -> {
             RandomState rs = level.getChunkSource().getGeneratorState().randomState();
@@ -94,6 +102,7 @@ public final class RoadPathCalculator {
     }
 
     static boolean isNearWaterLike(int x, int z, ServerLevel level) {
+        pruneCachesIfTooLarge();
         long key = hashXZ(x, z);
         Boolean cached = nearWaterCache.get(key);
         if (cached != null) return cached;
@@ -115,6 +124,7 @@ public final class RoadPathCalculator {
     }
 
     static boolean isColumnWater(int x, int z, ServerLevel level) {
+        pruneCachesIfTooLarge();
         long key = hashXZ(x, z);
         Boolean cached = columnWaterCache.get(key);
         if (cached != null) return cached;
@@ -229,5 +239,11 @@ public final class RoadPathCalculator {
 
         return spans;
     }
-
+    public static void clearCaches() {
+        heightCache.clear();
+        waterCache.clear();
+        oceanFloorCache.clear();
+        nearWaterCache.clear();
+        columnWaterCache.clear();
+    }
 }

@@ -7,6 +7,8 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 跨平台世界数据访问抽象（Common）。
@@ -27,9 +29,11 @@ public abstract class WorldDataProvider {
     public abstract List<Records.StructureConnection> getStructureConnections(ServerLevel level);
     public abstract void setStructureConnections(ServerLevel level, List<Records.StructureConnection> connections);
     
-    // 道路数据
-    public abstract List<Records.RoadData> getRoadDataList(ServerLevel level);
-    public abstract void setRoadDataList(ServerLevel level, List<Records.RoadData> roadDataList);
+    // 规划覆盖：tile 键集合与中心点映射
+    public abstract Set<Long> getPlannedTileKeys(ServerLevel level);
+    public abstract void setPlannedTileKeys(ServerLevel level, Set<Long> keys);
+    public abstract Map<Long, Long> getPlannedTileCenters(ServerLevel level);
+    public abstract void setPlannedTileCenters(ServerLevel level, Map<Long, Long> centers);
     
     // 便捷方法：添加单个结构位置
     public void addStructureLocation(ServerLevel level, BlockPos pos) {

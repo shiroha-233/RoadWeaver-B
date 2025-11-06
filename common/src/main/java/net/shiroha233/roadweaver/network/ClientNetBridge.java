@@ -30,4 +30,18 @@ public final class ClientNetBridge {
                     .invoke(null, x, y, z);
         } catch (Throwable ignored) {}
     }
+
+    public static void requestManualConnect(int ax, int az, int bx, int bz) {
+        try {
+            Class<?> c = Class.forName("net.shiroha233.roadweaver.network.fabric.MapNetworkFabric");
+            c.getMethod("requestManualConnect", int.class, int.class, int.class, int.class)
+                    .invoke(null, ax, az, bx, bz);
+            return;
+        } catch (Throwable ignored) {}
+        try {
+            Class<?> c = Class.forName("net.shiroha233.roadweaver.network.forge.MapNetworkForge");
+            c.getMethod("requestManualConnect", int.class, int.class, int.class, int.class)
+                    .invoke(null, ax, az, bx, bz);
+        } catch (Throwable ignored) {}
+    }
 }

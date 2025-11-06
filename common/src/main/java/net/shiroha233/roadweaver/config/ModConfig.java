@@ -24,17 +24,36 @@ public final class ModConfig {
 
     // 道路生成配置
     private boolean allowArtificial;
+    private boolean allowNatural;
     private boolean placeWaypoints;
     private int averagingRadius;
     private int generationThreads;
     private int maxConcurrentGenerations;
     private int aStarStep;                 // A* 采样步长（方块）
+    private int causewayMaxDepth;
+    private int maxSlopeStepPerTwoSegments;
 
     private int roadWidth;         
     private int lampInterval;      
     private boolean tunnelEnabled;
     private int tunnelClearHeight;
-    
+    private List<String> selectedArtificialPresetIds;
+    private boolean useWeightedPreset;
+    private boolean removeWholeTreeOnPath;
+    private int treeRemovalMaxRadius;
+    private int treeRemovalMaxHeight;
+    private int treeRemovalMaxBlocks;
+    private int treeLeavesConfirm;
+
+    // 桥梁配置
+    private boolean bridgeEnabled;
+    private int bridgeDeckClearance;
+    private boolean bridgeRailingEnabled;
+    private int bridgePierInterval;
+    private int bridgePierWidth;
+    private int bridgePierMaxHeight;
+    private boolean bridgeKeepLamps;
+    private int bridgeRampSegments;
 
     public ModConfig() {
         this.villagePredictionEnabled = true;
@@ -53,18 +72,38 @@ public final class ModConfig {
 
         // 道路生成默认参数
         this.allowArtificial = true;
+        this.allowNatural = true;
         this.placeWaypoints = false;
         this.averagingRadius = 8;
         
         this.generationThreads = Math.max(2, Math.min(3, Runtime.getRuntime().availableProcessors()));
         this.maxConcurrentGenerations = Math.max(1, Math.min(3, this.generationThreads));
         this.aStarStep = 16;
+        this.causewayMaxDepth = 1;
+        this.maxSlopeStepPerTwoSegments = 1;
 
         // 新增默认值
         this.roadWidth = 3;    
         this.lampInterval = 32; 
         this.tunnelEnabled = false;
         this.tunnelClearHeight = 5;
+        this.selectedArtificialPresetIds = new ArrayList<>();
+        this.useWeightedPreset = true;
+        this.removeWholeTreeOnPath = true;
+        this.treeRemovalMaxRadius = 6;
+        this.treeRemovalMaxHeight = 24;
+        this.treeRemovalMaxBlocks = 2048;
+        this.treeLeavesConfirm = 6;
+
+        // 桥梁默认值
+        this.bridgeEnabled = true;
+        this.bridgeDeckClearance = 2;
+        this.bridgeRailingEnabled = true;
+        this.bridgePierInterval = 6;
+        this.bridgePierWidth = 1;
+        this.bridgePierMaxHeight = 20;
+        this.bridgeKeepLamps = true;
+        this.bridgeRampSegments = 4;
     }
 
     public boolean villagePredictionEnabled() {
@@ -135,6 +174,10 @@ public final class ModConfig {
         if (maxConcurrentGenerations > maxCap) maxConcurrentGenerations = maxCap;
         if (aStarStep < 4) aStarStep = 16;            // 合理下限
         if (aStarStep > 128) aStarStep = 128;         // 合理上限
+        if (causewayMaxDepth < 0) causewayMaxDepth = 0;
+        if (causewayMaxDepth > 12) causewayMaxDepth = 12;
+        if (maxSlopeStepPerTwoSegments < 0) maxSlopeStepPerTwoSegments = 0;
+        if (maxSlopeStepPerTwoSegments > 8) maxSlopeStepPerTwoSegments = 8;
 
         // 新增字段校验
         if (roadWidth < 0) roadWidth = 0;            // 0=自动
@@ -143,7 +186,27 @@ public final class ModConfig {
         if (lampInterval > 2048) lampInterval = 2048;
         if (tunnelClearHeight < 2) tunnelClearHeight = 2;
         if (tunnelClearHeight > 16) tunnelClearHeight = 16;
-        
+        if (selectedArtificialPresetIds == null) selectedArtificialPresetIds = new ArrayList<>();
+        if (treeRemovalMaxRadius < 2) treeRemovalMaxRadius = 2;
+        if (treeRemovalMaxRadius > 12) treeRemovalMaxRadius = 12;
+        if (treeRemovalMaxHeight < 8) treeRemovalMaxHeight = 8;
+        if (treeRemovalMaxHeight > 64) treeRemovalMaxHeight = 64;
+        if (treeRemovalMaxBlocks < 64) treeRemovalMaxBlocks = 64;
+        if (treeRemovalMaxBlocks > 8192) treeRemovalMaxBlocks = 8192;
+        if (treeLeavesConfirm < 0) treeLeavesConfirm = 0;
+        if (treeLeavesConfirm > 128) treeLeavesConfirm = 128;
+
+        // 桥梁字段校验
+        if (bridgeDeckClearance < 1) bridgeDeckClearance = 1;
+        if (bridgeDeckClearance > 8) bridgeDeckClearance = 8;
+        if (bridgePierInterval < 3) bridgePierInterval = 3;
+        if (bridgePierInterval > 32) bridgePierInterval = 32;
+        if (bridgePierWidth < 1) bridgePierWidth = 1;
+        if (bridgePierWidth > 3) bridgePierWidth = 3;
+        if (bridgePierMaxHeight < 6) bridgePierMaxHeight = 6;
+        if (bridgePierMaxHeight > 64) bridgePierMaxHeight = 64;
+        if (bridgeRampSegments < 0) bridgeRampSegments = 0;
+        if (bridgeRampSegments > 12) bridgeRampSegments = 12;
     }
 
     // 初始规划半径
@@ -165,6 +228,9 @@ public final class ModConfig {
     public boolean allowArtificial() { return allowArtificial; }
     public void setAllowArtificial(boolean v) { this.allowArtificial = v; }
 
+    public boolean allowNatural() { return allowNatural; }
+    public void setAllowNatural(boolean v) { this.allowNatural = v; }
+
 
     public boolean placeWaypoints() { return placeWaypoints; }
     public void setPlaceWaypoints(boolean v) { this.placeWaypoints = v; }
@@ -183,6 +249,12 @@ public final class ModConfig {
     // A* 采样步长
     public int aStarStep() { return aStarStep; }
     public void setAStarStep(int v) { this.aStarStep = v; }
+
+    public int causewayMaxDepth() { return causewayMaxDepth; }
+    public void setCausewayMaxDepth(int v) { this.causewayMaxDepth = v; }
+
+    public int maxSlopeStepPerTwoSegments() { return maxSlopeStepPerTwoSegments; }
+    public void setMaxSlopeStepPerTwoSegments(int v) { this.maxSlopeStepPerTwoSegments = v; }
 
     // 新增：道路宽度（0=自动）
     public int roadWidth() { return roadWidth; }
@@ -204,5 +276,44 @@ public final class ModConfig {
     public int tunnelClearHeight() { return tunnelClearHeight; }
     public void setTunnelClearHeight(int v) { this.tunnelClearHeight = v; }
 
-    
+    public List<String> selectedArtificialPresetIds() { return selectedArtificialPresetIds; }
+    public void setSelectedArtificialPresetIds(List<String> v) { this.selectedArtificialPresetIds = v == null ? new ArrayList<>() : new ArrayList<>(v); }
+    public boolean useWeightedPreset() { return useWeightedPreset; }
+    public void setUseWeightedPreset(boolean v) { this.useWeightedPreset = v; }
+
+    public boolean removeWholeTreeOnPath() { return removeWholeTreeOnPath; }
+    public void setRemoveWholeTreeOnPath(boolean v) { this.removeWholeTreeOnPath = v; }
+    public int treeRemovalMaxRadius() { return treeRemovalMaxRadius; }
+    public void setTreeRemovalMaxRadius(int v) { this.treeRemovalMaxRadius = v; }
+    public int treeRemovalMaxHeight() { return treeRemovalMaxHeight; }
+    public void setTreeRemovalMaxHeight(int v) { this.treeRemovalMaxHeight = v; }
+    public int treeRemovalMaxBlocks() { return treeRemovalMaxBlocks; }
+    public void setTreeRemovalMaxBlocks(int v) { this.treeRemovalMaxBlocks = v; }
+    public int treeLeavesConfirm() { return treeLeavesConfirm; }
+    public void setTreeLeavesConfirm(int v) { this.treeLeavesConfirm = v; }
+
+    // 桥梁配置存取
+    public boolean bridgeEnabled() { return bridgeEnabled; }
+    public void setBridgeEnabled(boolean v) { this.bridgeEnabled = v; }
+
+    public int bridgeDeckClearance() { return bridgeDeckClearance; }
+    public void setBridgeDeckClearance(int v) { this.bridgeDeckClearance = v; }
+
+    public boolean bridgeRailingEnabled() { return bridgeRailingEnabled; }
+    public void setBridgeRailingEnabled(boolean v) { this.bridgeRailingEnabled = v; }
+
+    public int bridgePierInterval() { return bridgePierInterval; }
+    public void setBridgePierInterval(int v) { this.bridgePierInterval = v; }
+
+    public int bridgePierWidth() { return bridgePierWidth; }
+    public void setBridgePierWidth(int v) { this.bridgePierWidth = v; }
+
+    public int bridgePierMaxHeight() { return bridgePierMaxHeight; }
+    public void setBridgePierMaxHeight(int v) { this.bridgePierMaxHeight = v; }
+
+    public boolean bridgeKeepLamps() { return bridgeKeepLamps; }
+    public void setBridgeKeepLamps(boolean v) { this.bridgeKeepLamps = v; }
+
+    public int bridgeRampSegments() { return bridgeRampSegments; }
+    public void setBridgeRampSegments(int v) { this.bridgeRampSegments = v; }
 }

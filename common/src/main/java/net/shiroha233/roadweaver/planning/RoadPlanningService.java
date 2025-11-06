@@ -16,12 +16,33 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import net.shiroha233.roadweaver.util.ComputeService;
 
 public final class RoadPlanningService {
     private RoadPlanningService() {}
 
     private static final ConcurrentHashMap<Level, Set<Long>> PLANNED_TILES = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Level, java.util.concurrent.ConcurrentHashMap<Long, Long>> PLANNED_TILE_CENTERS = new ConcurrentHashMap<>();
+    private static final int MAX_PLANNED_KEYS = 200_000;
+
+    private static void prunePlannedIfTooLarge(Level level) {
+        WorldDataProvider provider = WorldDataProvider.getInstance();
+        java.util.Set<Long> keys = new java.util.HashSet<>(provider.getPlannedTileKeys((ServerLevel) level));
+        if (keys.size() > MAX_PLANNED_KEYS) {
+            int remove = keys.size() - MAX_PLANNED_KEYS;
+            java.util.Iterator<Long> it = keys.iterator();
+            while (remove > 0 && it.hasNext()) { it.next(); it.remove(); remove--; }
+            provider.setPlannedTileKeys((ServerLevel) level, keys);
+        }
+        java.util.Map<Long, Long> centers = new java.util.HashMap<>(provider.getPlannedTileCenters((ServerLevel) level));
+        if (centers.size() > MAX_PLANNED_KEYS) {
+            int remove2 = centers.size() - MAX_PLANNED_KEYS;
+            java.util.Iterator<Long> it2 = centers.keySet().iterator();
+            while (remove2 > 0 && it2.hasNext()) { it2.next(); it2.remove(); remove2--; }
+            provider.setPlannedTileCenters((ServerLevel) level, centers);
+        }
+    }
 
     public static void initialPlan(ServerLevel level) {
         if (!Level.OVERWORLD.equals(level.dimension())) return;
@@ -51,18 +72,21 @@ public final class RoadPlanningService {
         int kx = floorDiv(pcx, tile);
         int kz = floorDiv(pcz, tile);
         long key = (((long) kx) << 32) ^ (kz & 0xffffffffL);
-        Set<Long> set = PLANNED_TILES.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet());
+        WorldDataProvider provider0 = WorldDataProvider.getInstance();
+        java.util.Set<Long> set = new java.util.HashSet<>(provider0.getPlannedTileKeys(level));
         boolean isNewTile = set.add(key);
-        // 记录该 tile 的规划中心（玩家当时的区块坐标），用于地图覆盖重建
-        java.util.concurrent.ConcurrentHashMap<Long, Long> centers = PLANNED_TILE_CENTERS.computeIfAbsent(level, l -> new java.util.concurrent.ConcurrentHashMap<>());
+        java.util.Map<Long, Long> centers = new java.util.HashMap<>(provider0.getPlannedTileCenters(level));
         centers.putIfAbsent(key, (((long) pcx) << 32) ^ (pcz & 0xffffffffL));
+        provider0.setPlannedTileKeys(level, set);
+        provider0.setPlannedTileCenters(level, centers);
         if (!isNewTile) return; 
 
         int minX = (pcx - radiusChunks) * 16;
         int maxX = (pcx + radiusChunks) * 16;
         int minZ = (pcz - radiusChunks) * 16;
         int maxZ = (pcz + radiusChunks) * 16;
-        planRect(level, minX, minZ, maxX, maxZ);
+        prunePlannedIfTooLarge(level);
+        planRectAsync(level, minX, minZ, maxX, maxZ);
     }
 
     private static void planRect(ServerLevel level, int minBlockX, int minBlockZ, int maxBlockX, int maxBlockZ) {
@@ -111,6 +135,61 @@ public final class RoadPlanningService {
         }
     }
 
+    public static CompletableFuture<Void> initialPlanAsync(ServerLevel level) {
+        if (!Level.OVERWORLD.equals(level.dimension())) return CompletableFuture.completedFuture(null);
+        ModConfig cfg = ConfigService.get();
+        int radiusChunks = Math.max(1, cfg.initialPlanRadiusChunks());
+        BlockPos spawn = level.getSharedSpawnPos();
+        int cx = spawn.getX() >> 4;
+        int cz = spawn.getZ() >> 4;
+        int minX = (cx - radiusChunks) * 16;
+        int maxX = (cx + radiusChunks) * 16;
+        int minZ = (cz - radiusChunks) * 16;
+        int maxZ = (cz + radiusChunks) * 16;
+        return planRectAsync(level, minX, minZ, maxX, maxZ);
+    }
+
+    public static CompletableFuture<Void> planRectAsync(ServerLevel level, int minBlockX, int minBlockZ, int maxBlockX, int maxBlockZ) {
+        return ComputeService.supplyAsync(() -> {
+            MapSnapshot snap = MapDataCollector.build(level, minBlockX, minBlockZ, maxBlockX, maxBlockZ);
+            ArrayList<BlockPos> points = new ArrayList<>();
+            HashSet<Long> seenPos = new HashSet<>();
+            for (BlockPos p : snap.structures()) {
+                BlockPos q = new BlockPos(p.getX(), 0, p.getZ());
+                long key = PlanningUtils.pos2dKey(q);
+                if (seenPos.add(key)) points.add(q);
+            }
+            if (points.size() < 2) return new ArrayList<Records.StructureConnection>();
+            List<Records.StructureConnection> primaryEdges;
+            ModConfig cfg0 = ConfigService.get();
+            if (cfg0.planningAlgorithm() == ModConfig.PlanningAlgorithm.DELAUNAY) {
+                primaryEdges = DelaunayPlanner.planDelaunay(points, 2048);
+            } else if (cfg0.planningAlgorithm() == ModConfig.PlanningAlgorithm.RNG) {
+                primaryEdges = RNGPlanner.planRNG(points, 2048);
+            } else {
+                primaryEdges = KNNPlanner.planKNN(points, 2, 2048, 1.8, 40.0, 2);
+            }
+            if (primaryEdges.isEmpty()) return new ArrayList<Records.StructureConnection>();
+            List<Records.StructureConnection> base = new ArrayList<>(primaryEdges);
+            List<Records.StructureConnection> bridges = KNNPlanner.connectComponents(points, base, 1536, 35.0, 3);
+            ArrayList<Records.StructureConnection> incoming = new ArrayList<>(primaryEdges);
+            incoming.addAll(bridges);
+            return incoming;
+        }).thenAccept(incoming -> {
+            if (incoming == null || incoming.isEmpty()) return;
+            var server = level.getServer();
+            if (server == null) return;
+            server.execute(() -> {
+                WorldDataProvider provider = WorldDataProvider.getInstance();
+                List<Records.StructureConnection> existing = provider.getStructureConnections(level);
+                List<Records.StructureConnection> merged = mergeConnections(existing, incoming);
+                if (merged.size() != (existing == null ? 0 : existing.size())) {
+                    provider.setStructureConnections(level, merged);
+                }
+            });
+        });
+    }
+
     private static List<Records.StructureConnection> mergeConnections(List<Records.StructureConnection> existing,
                                                                       List<Records.StructureConnection> incoming) {
         HashSet<Long> seen = new HashSet<>();
@@ -135,12 +214,12 @@ public final class RoadPlanningService {
     }
 
     public static Set<Long> getPlannedTiles(ServerLevel level) {
-        Set<Long> s = PLANNED_TILES.get(level);
-        return s != null ? java.util.Set.copyOf(s) : java.util.Set.of();
+        java.util.Set<Long> s = WorldDataProvider.getInstance().getPlannedTileKeys(level);
+        return s == null ? java.util.Set.of() : java.util.Set.copyOf(s);
     }
 
     public static java.util.Map<Long, Long> getPlannedTileCenters(ServerLevel level) {
-        var m = PLANNED_TILE_CENTERS.get(level);
+        java.util.Map<Long, Long> m = WorldDataProvider.getInstance().getPlannedTileCenters(level);
         if (m == null || m.isEmpty()) return java.util.Map.of();
         return java.util.Map.copyOf(m);
     }
@@ -154,5 +233,10 @@ public final class RoadPlanningService {
     public static int getDynamicPlanRadiusChunks() {
         ModConfig cfg = ConfigService.get();
         return Math.max(1, cfg.dynamicPlanRadiusChunks());
+    }
+
+    public static void resetAll() {
+        PLANNED_TILES.clear();
+        PLANNED_TILE_CENTERS.clear();
     }
 }
