@@ -51,6 +51,7 @@ public final class ServerPlanningHooks {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             for (ServerLevel lvl : server.getAllLevels()) {
                 RoadShardStorage.flushAll(lvl);
+                RoadShardStorage.clearAll(lvl);
             }
             RoadGenerationService.onServerStopping();
             ComputeService.shutdownNow();

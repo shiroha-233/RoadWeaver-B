@@ -37,6 +37,12 @@ public final class RoadShardStorage {
         return rl.getNamespace() + "/" + rl.getPath();
     }
 
+    private static String cacheKey(ServerLevel level) {
+        Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
+        String worldId = worldRoot == null ? "unknown" : worldRoot.toAbsolutePath().normalize().toString();
+        return worldId + "|" + dimKey(level);
+    }
+
 
     private static Path basePath(ServerLevel level) {
         Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
@@ -65,7 +71,7 @@ public final class RoadShardStorage {
     }
 
     private static LinkedHashMap<Long, Shard> cacheForDim(ServerLevel level) {
-        String dk = dimKey(level);
+        String dk = cacheKey(level);
         return CACHE.computeIfAbsent(dk, k -> new LinkedHashMap<>(16, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<Long, Shard> eldest) {

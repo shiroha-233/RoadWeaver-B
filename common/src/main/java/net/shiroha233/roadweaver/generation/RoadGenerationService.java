@@ -51,7 +51,8 @@ public final class RoadGenerationService {
         WorldDataProvider provider = WorldDataProvider.getInstance();
         try {
             // 标记为 GENERATING
-            List<Records.StructureConnection> all0 = new ArrayList<>(provider.getStructureConnections(level));
+            List<Records.StructureConnection> origin0 = provider.getStructureConnections(level);
+            List<Records.StructureConnection> all0 = origin0 != null ? new ArrayList<>(origin0) : new ArrayList<>();
             for (int i = 0; i < all0.size(); i++) {
                 Records.StructureConnection c = all0.get(i);
                 if (sameEdge(c, conn)) {
@@ -73,7 +74,8 @@ public final class RoadGenerationService {
             new Road(level, conn, cfg).generateRoad(5000);
 
             // 标记 COMPLETED
-            List<Records.StructureConnection> all = new ArrayList<>(provider.getStructureConnections(level));
+            List<Records.StructureConnection> origin = provider.getStructureConnections(level);
+            List<Records.StructureConnection> all = origin != null ? new ArrayList<>(origin) : new ArrayList<>();
             for (int i = 0; i < all.size(); i++) {
                 Records.StructureConnection c = all.get(i);
                 if (sameEdge(c, conn)) {
@@ -88,7 +90,8 @@ public final class RoadGenerationService {
             }
         } catch (Throwable t) {
             // 标记 FAILED
-            List<Records.StructureConnection> all = new ArrayList<>(provider.getStructureConnections(level));
+            List<Records.StructureConnection> origin = provider.getStructureConnections(level);
+            List<Records.StructureConnection> all = origin != null ? new ArrayList<>(origin) : new ArrayList<>();
             for (int i = 0; i < all.size(); i++) {
                 Records.StructureConnection c = all.get(i);
                 if (sameEdge(c, conn)) {
@@ -186,7 +189,8 @@ public final class RoadGenerationService {
                 cfg = defaultConfig();
             }
             new Road(level, conn, cfg).generateRoad(5000);
-            List<Records.StructureConnection> all = new ArrayList<>(provider.getStructureConnections(level));
+            List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
+            List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
             for (int i = 0; i < all.size(); i++) {
                 Records.StructureConnection c = all.get(i);
                 if (sameEdge(c, conn)) {
@@ -201,7 +205,8 @@ public final class RoadGenerationService {
             }
         } catch (Throwable t) {
             WorldDataProvider provider = WorldDataProvider.getInstance();
-            List<Records.StructureConnection> all = new ArrayList<>(provider.getStructureConnections(level));
+            List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
+            List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
             for (int i = 0; i < all.size(); i++) {
                 Records.StructureConnection c = all.get(i);
                 if (sameEdge(c, conn)) {

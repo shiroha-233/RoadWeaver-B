@@ -12,6 +12,7 @@ import net.shiroha233.roadweaver.network.ClientNetBridge;
 import java.util.concurrent.CompletableFuture;
 import net.shiroha233.roadweaver.util.ComputeService;
 import net.minecraft.core.BlockPos;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class RoadMapScreen extends Screen {
@@ -57,6 +58,9 @@ public class RoadMapScreen extends Screen {
     private BlockPos menuTarget;
     private boolean manualMode;
     private BlockPos selectedA;
+    
+    // 请求序列号，用于防止旧请求覆盖新数据
+    private final AtomicInteger requestSeq = new AtomicInteger(0);
 
     public RoadMapScreen() {
         super(Component.translatable("gui.roadweaver.map.title"));
@@ -241,6 +245,11 @@ public class RoadMapScreen extends Screen {
         MapSnapshotCache.scheduleClear(1000);
     }
 
+    /**
+     * 更新地图快照数据。
+     * 注意：多人模式下由网络包调用（网络包有序性保证正确性）；
+     * 单人模式下由异步任务调用（已在回调中做序列号检查）。
+     */
     public void setSnapshot(MapSnapshot snapshot) {
         if (snapshot != null) {
             this.snapshot = snapshot;
@@ -421,11 +430,20 @@ public class RoadMapScreen extends Screen {
                 }
                 int radiusBlocks = Math.max(1, radiusChunks) * 16;
                 final int fcx = cx, fcz = cz;
+                // 递增序列号，只有最新请求的结果才会被应用
+                final int currentSeq = requestSeq.incrementAndGet();
                 CompletableFuture
                     .supplyAsync(() -> MapDataCollector.build(level, fMinX, fMinZ, fMaxX, fMaxZ, fcx, fcz, radiusBlocks), ComputeService.executor())
-                    .thenAccept(snap -> mc.execute(() -> setSnapshot(snap)));
+                    .thenAccept(snap -> mc.execute(() -> {
+                        // 只有当前序列号仍是最新时才更新（防止旧任务覆盖新数据）
+                        if (requestSeq.get() == currentSeq) {
+                            setSnapshot(snap);
+                        }
+                    }));
             }
         } else {
+            // 多人模式：递增序列号（网络包本身有序，但标记最新请求）
+            requestSeq.incrementAndGet();
             ClientNetBridge.requestSnapshot(minX, minZ, maxX, maxZ);
         }
 
