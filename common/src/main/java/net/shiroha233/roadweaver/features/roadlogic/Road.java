@@ -94,7 +94,7 @@ public final class Road {
         }
 
         int[] smoothed = base.clone();
-        // Smooth each contiguous non-bridge run with ±step per two segments (configurable)
+        // 对每个连续非桥梁段进行平滑，以避免奇偶振荡
         int i = 0;
         while (i < n) {
             // skip bridge indices
@@ -103,19 +103,43 @@ public final class Road {
             while (i < n && !isBridge[i]) i++;
             int e = i - 1; // inclusive
             if (s <= e) {
-                int step = Math.max(0, Math.min(8, ConfigService.get().maxSlopeStepPerTwoSegments()));
-                for (int ii = s + 2; ii <= e; ii++) {
-                    int py = smoothed[ii - 2];
+                int step2 = Math.max(0, Math.min(8, ConfigService.get().maxSlopeStepPerTwoSegments()));
+                int halfLow = Math.max(0, step2 / 2);
+                int halfHigh = Math.max(0, (step2 + 1) / 2);
+                for (int ii = s + 1; ii <= e; ii++) {
                     int y = smoothed[ii];
-                    if (y > py + step) y = py + step;
-                    if (y < py - step) y = py - step;
+                    if (ii == s + 1) {
+                        int py = smoothed[ii - 1];
+                        if (y > py + halfLow) y = py + halfLow;
+                        if (y < py - halfLow) y = py - halfLow;
+                    } else {
+                        int py = smoothed[ii - 1];
+                        if (y > py + halfHigh) y = py + halfHigh;
+                        if (y < py - halfHigh) y = py - halfHigh;
+                        int p2 = smoothed[ii - 2];
+                        int hi = p2 + step2;
+                        int lo = p2 - step2;
+                        if (y > hi) y = hi;
+                        if (y < lo) y = lo;
+                    }
                     smoothed[ii] = y;
                 }
-                for (int ii = e - 2; ii >= s; ii--) {
-                    int ny = smoothed[ii + 2];
+                for (int ii = e - 1; ii >= s; ii--) {
                     int y = smoothed[ii];
-                    if (y > ny + step) y = ny + step;
-                    if (y < ny - step) y = ny - step;
+                    if (ii == e - 1) {
+                        int ny = smoothed[ii + 1];
+                        if (y > ny + halfLow) y = ny + halfLow;
+                        if (y < ny - halfLow) y = ny - halfLow;
+                    } else {
+                        int ny = smoothed[ii + 1];
+                        if (y > ny + halfHigh) y = ny + halfHigh;
+                        if (y < ny - halfHigh) y = ny - halfHigh;
+                        int n2 = smoothed[ii + 2];
+                        int hi = n2 + step2;
+                        int lo = n2 - step2;
+                        if (y > hi) y = hi;
+                        if (y < lo) y = lo;
+                    }
                     smoothed[ii] = y;
                 }
             }

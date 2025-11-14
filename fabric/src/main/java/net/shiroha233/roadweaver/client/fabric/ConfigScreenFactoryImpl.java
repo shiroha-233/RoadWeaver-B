@@ -308,6 +308,14 @@ public class ConfigScreenFactoryImpl {
         );
 
         genPerformance.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.a_star_max_steps"), conf.aStarMaxSteps())
+                        .setTooltip(Component.translatable("config.roadweaver.a_star_max_steps.tooltip"))
+                        .setMin(100).setMax(100000)
+                        .setSaveConsumer(conf::setAStarMaxSteps)
+                        .build()
+        );
+
+        genPerformance.addEntry(
                 eb.startIntField(Component.translatable("config.roadweaver.max_concurrent_generations"), conf.maxConcurrentGenerations())
                         .setTooltip(Component.translatable("config.roadweaver.max_concurrent_generations.tooltip"))
                         .setMin(1).setMax(128)

@@ -82,6 +82,8 @@
   "config.roadweaver.a_star_step.tooltip": "Grid step between sampled neighbors for A*. Larger values reduce nodes and improve performance but may reduce path fidelity. Default 16.",
   "config.roadweaver.max_concurrent_generations": "Max Concurrent Generations",
   "config.roadweaver.max_concurrent_generations.tooltip": "Cap the number of roads generating in parallel.",
+  "config.roadweaver.a_star_max_steps": "A* Max Search Steps",
+  "config.roadweaver.a_star_max_steps.tooltip": "Maximum search steps for A* algorithm per generation to prevent infinite loops in complex terrain.",
 
   "gui.roadweaver.map.menu.teleport": "Teleport here",
   "gui.roadweaver.map.teleport.success": "Teleported",

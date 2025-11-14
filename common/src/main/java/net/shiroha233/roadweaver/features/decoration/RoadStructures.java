@@ -1,6 +1,7 @@
 package net.shiroha233.roadweaver.features.decoration;
 
 import net.shiroha233.roadweaver.features.decoration.util.WoodSelector;
+import net.shiroha233.roadweaver.features.decoration.util.BiomeWoodAware;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -13,20 +14,11 @@ public final class RoadStructures {
         Iterator<Decoration> it = positions.iterator();
         while (it.hasNext()) {
             Decoration dec = it.next();
-            if (dec == null) continue;
-            if (dec instanceof LamppostDecoration lamp) {
-                lamp.setWoodType(WoodSelector.forBiome(lamp.getWorld(), lamp.getPos()));
-                lamp.place();
-            } else if (dec instanceof DistanceSignDecoration sign) {
-                sign.setWoodType(WoodSelector.forBiome(sign.getWorld(), sign.getPos()));
-                sign.place();
-            } else if (dec instanceof LanternPostDecoration natLamp) {
-                natLamp.setWoodType(WoodSelector.forBiome(natLamp.getWorld(), natLamp.getPos()));
-                natLamp.place();
-            } else if (dec instanceof FenceWaypointDecoration wp) {
-                wp.setWoodType(WoodSelector.forBiome(wp.getWorld(), wp.getPos()));
-                wp.place();
+            if (dec == null) { it.remove(); continue; }
+            if (dec instanceof BiomeWoodAware aware) {
+                aware.setWoodType(WoodSelector.forBiome(dec.getWorld(), dec.getPos()));
             }
+            dec.place();
             it.remove();
         }
     }

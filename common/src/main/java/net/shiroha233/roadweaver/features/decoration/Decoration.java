@@ -18,12 +18,20 @@ public abstract class Decoration {
 
     public abstract void place();
 
-    protected final boolean placeAllowed() {
-        BlockPos surfacePos = new BlockPos(placePos.getX(), world.getHeight(Heightmap.Types.WORLD_SURFACE_WG, placePos.getX(), placePos.getZ()), placePos.getZ());
-        this.placePos = surfacePos;
+    public BlockPos computeSurfacePos() {
+        return new BlockPos(placePos.getX(), world.getHeight(Heightmap.Types.WORLD_SURFACE_WG, placePos.getX(), placePos.getZ()), placePos.getZ());
+    }
+
+    public boolean isPlaceAllowedAt(BlockPos surfacePos) {
         BlockState below = world.getBlockState(surfacePos.below());
         boolean belowInvalid = below.is(Blocks.WATER) || below.is(Blocks.LAVA) || below.is(BlockTags.LOGS) || RoadFeatureCompat.dontPlaceHere(below.getBlock());
         return !belowInvalid;
+    }
+
+    protected final boolean placeAllowed() {
+        BlockPos surfacePos = computeSurfacePos();
+        this.placePos = surfacePos;
+        return isPlaceAllowedAt(surfacePos);
     }
 
     public BlockPos getPos() { return placePos; }

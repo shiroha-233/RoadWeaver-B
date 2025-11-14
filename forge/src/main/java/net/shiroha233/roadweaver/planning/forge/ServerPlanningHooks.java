@@ -13,6 +13,7 @@ import net.shiroha233.roadweaver.generation.InitialGenManager;
 import net.shiroha233.roadweaver.persistence.WorldDataProvider;
 import net.shiroha233.roadweaver.util.ComputeService;
 import net.shiroha233.roadweaver.persistence.sharded.RoadShardStorage;
+import net.shiroha233.roadweaver.structures.StructureSystem;
 
 public final class ServerPlanningHooks {
     private ServerPlanningHooks() {}
@@ -26,6 +27,8 @@ public final class ServerPlanningHooks {
     }
 
     private static void onServerStarted(ServerStartedEvent event) {
+        StructureSystem.clearAll();
+        net.shiroha233.roadweaver.runtime.ThreadPoolManager.onServerStarted(event.getServer());
         ServerLevel level = event.getServer().getLevel(Level.OVERWORLD);
         if (level == null) return;
         boolean dedicated = event.getServer().isDedicatedServer();
@@ -65,6 +68,7 @@ public final class ServerPlanningHooks {
             RoadShardStorage.clearAll(lvl);
         }
         RoadGenerationService.onServerStopping();
+        StructureSystem.clearAll();
         ComputeService.shutdownNow();
     }
 }

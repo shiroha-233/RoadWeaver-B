@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 import net.shiroha233.roadweaver.util.ComputeService;
+import net.shiroha233.roadweaver.runtime.ThreadPoolManager;
 
 public final class RoadPlanningService {
     private RoadPlanningService() {}
@@ -150,7 +151,10 @@ public final class RoadPlanningService {
     }
 
     public static CompletableFuture<Void> planRectAsync(ServerLevel level, int minBlockX, int minBlockZ, int maxBlockX, int maxBlockZ) {
+        final long epoch = ThreadPoolManager.currentEpoch();
         return ComputeService.supplyAsync(() -> {
+            if (Thread.currentThread().isInterrupted()) return new ArrayList<Records.StructureConnection>();
+            if (!ThreadPoolManager.isEpoch(epoch)) return new ArrayList<Records.StructureConnection>();
             MapSnapshot snap = MapDataCollector.build(level, minBlockX, minBlockZ, maxBlockX, maxBlockZ);
             ArrayList<BlockPos> points = new ArrayList<>();
             HashSet<Long> seenPos = new HashSet<>();
@@ -177,9 +181,11 @@ public final class RoadPlanningService {
             return incoming;
         }).thenAccept(incoming -> {
             if (incoming == null || incoming.isEmpty()) return;
+            if (!ThreadPoolManager.isEpoch(epoch)) return;
             var server = level.getServer();
             if (server == null) return;
             server.execute(() -> {
+                if (!ThreadPoolManager.isEpoch(epoch)) return;
                 WorldDataProvider provider = WorldDataProvider.getInstance();
                 List<Records.StructureConnection> existing = provider.getStructureConnections(level);
                 List<Records.StructureConnection> merged = mergeConnections(existing, incoming);

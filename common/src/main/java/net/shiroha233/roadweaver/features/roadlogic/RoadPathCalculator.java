@@ -77,7 +77,7 @@ public final class RoadPathCalculator {
         long key = hashXZ(x, z);
         return heightCache.computeIfAbsent(key, k -> {
             RandomState rs = level.getChunkSource().getGeneratorState().randomState();
-            return level.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, rs);
+            return level.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, level, rs);
         });
     }
 

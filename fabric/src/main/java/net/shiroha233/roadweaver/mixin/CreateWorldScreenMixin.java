@@ -1,7 +1,10 @@
 package net.shiroha233.roadweaver.mixin;
 
 import net.shiroha233.roadweaver.client.fabric.ConfigScreenFactoryImpl;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.tabs.GridLayoutTab;
+import net.minecraft.client.gui.layouts.GridLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
@@ -13,33 +16,33 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Mixin to add RoadWeaver config button to the Create World screen
  */
-@Mixin(CreateWorldScreen.class)
-public abstract class CreateWorldScreenMixin extends Screen {
-    
+@Mixin(targets = "net.minecraft.client.gui.screens.worldselection.CreateWorldScreen$GameTab")
+public abstract class CreateWorldScreenMixin extends GridLayoutTab {
+
     protected CreateWorldScreenMixin(Component title) {
         super(title);
     }
-    
-    @Inject(method = "init", at = @At("RETURN"))
+
+    @Inject(method = "<init>", at = @At("TAIL"))
     private void addConfigButton(CallbackInfo ci) {
-        // 在左下角添加配置按钮
-        int buttonWidth = 120;
-        int buttonHeight = 20;
-        int x = 10; // 左边距
-        int y = this.height - 52; // 底部边距，避开"创建新的世界"按钮
-        
         Button configButton = Button.builder(
                 Component.translatable("gui.roadweaver.config_button"),
                 button -> {
-                    // 打开配置界面
-                    if (this.minecraft != null) {
-                        this.minecraft.setScreen(ConfigScreenFactoryImpl.createConfigScreen(this));
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc != null && mc.screen instanceof CreateWorldScreen screen) {
+                        mc.setScreen(ConfigScreenFactoryImpl.createConfigScreen((Screen) screen));
                     }
                 })
-                .bounds(x, y, buttonWidth, buttonHeight)
+                .width(210)
                 .build();
-        
-        // 直接调用继承的 addRenderableWidget 方法
-        this.addRenderableWidget(configButton);
+        // 行索引说明（参考原版 GameTab 构造函数）：
+        // 0: 世界名称输入
+        // 1: 游戏模式
+        // 2: 难度
+        // 3: 允许作弊
+        // 4: 实验性特性按钮（仅快照版本存在）
+        // 因此：稳定版放在第 4 行（紧跟允许作弊），快照版放在第 5 行（紧跟实验性特性）。
+        int row = net.minecraft.SharedConstants.getCurrentVersion().isStable() ? 4 : 5;
+        this.layout.addChild(configButton, row, 0, this.layout.newCellSettings().alignHorizontallyCenter());
     }
 }

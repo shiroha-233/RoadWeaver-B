@@ -45,6 +45,9 @@ public final class InitialGenManager {
         // 确保生成线程池已初始化
         RoadGenerationService.onServerStarted();
 
+        // 首开世界：尝试放置出生点小屋（幂等）
+        net.shiroha233.roadweaver.structures.spawn.SpawnCabinService.ensurePlaced(level);
+
         // 进行初始规划：写入结构连接（PLANNED）
         RoadPlanningService.initialPlan(level);
 

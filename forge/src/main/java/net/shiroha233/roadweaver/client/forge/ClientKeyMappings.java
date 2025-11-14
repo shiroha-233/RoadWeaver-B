@@ -31,7 +31,11 @@ public class ClientKeyMappings {
             if (mc.player == null) return;
             if (OPEN_MAP == null) return;
             while (OPEN_MAP.consumeClick()) {
-                mc.setScreen(new RoadMapScreen());
+                if (mc.screen instanceof RoadMapScreen) {
+                    mc.setScreen(null);
+                } else {
+                    mc.setScreen(new RoadMapScreen());
+                }
             }
         }
     }

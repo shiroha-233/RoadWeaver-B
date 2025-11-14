@@ -24,14 +24,24 @@ public abstract class LevelLoadingScreenMixin {
 
         Minecraft mc = Minecraft.getInstance();
         var font = mc.font;
+        int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
-        int x = 10;
+
+        Component title = Component.translatable("gui.roadweaver.initgen.title");
+        Component summary = Component.translatable("gui.roadweaver.initgen.summary", total, planned, generating, done, failed);
+        Component progress = Component.translatable("gui.roadweaver.initgen.progress", done, total, percent);
+
         int y = sh - 60;
 
-        graphics.drawString(font, Component.translatable("gui.roadweaver.initgen.title"), x, y, 0xFFFFFF, false);
+        int x = (sw - font.width(title)) / 2;
+        graphics.drawString(font, title, x, y, 0xFFFFFF, false);
         y += 12;
-        graphics.drawString(font, Component.translatable("gui.roadweaver.initgen.summary", total, planned, generating, done, failed), x, y, 0xA0A0A0, false);
+
+        x = (sw - font.width(summary)) / 2;
+        graphics.drawString(font, summary, x, y, 0xA0A0A0, false);
         y += 12;
-        graphics.drawString(font, Component.translatable("gui.roadweaver.initgen.progress", done, total, percent), x, y, 0xA0FFA0, false);
+
+        x = (sw - font.width(progress)) / 2;
+        graphics.drawString(font, progress, x, y, 0xA0FFA0, false);
     }
 }

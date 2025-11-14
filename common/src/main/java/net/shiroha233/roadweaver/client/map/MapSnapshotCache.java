@@ -30,4 +30,9 @@ public final class MapSnapshotCache {
     public static void cancelClear() {
         CLEAR_SEQ.incrementAndGet();
     }
+    
+    public static void clearNow() {
+        CLEAR_SEQ.incrementAndGet();
+        SNAPSHOT = null;
+    }
 }

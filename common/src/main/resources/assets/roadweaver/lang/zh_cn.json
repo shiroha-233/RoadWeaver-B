@@ -38,7 +38,7 @@
 
   "config.roadweaver.category.road_planning": "路网规划",
   "config.roadweaver.initial_plan_radius_chunks": "初始规划半径（区块）",
-  "config.roadweaver.initial_plan_radius_chunks.tooltip": "新建世界启动后，以出生点为中心，在该半径内构建初始路网，不要设置太大，否则新建世界会加载很久。",
+  "config.roadweaver.initial_plan_radius_chunks.tooltip": "新建世界启动后，以出生点为中心，在该半径内构建初始路网，不要设置太大（建议64），否则新建世界会加载很久！！！",
   "config.roadweaver.dynamic_plan_enabled": "启用动态规划",
   "config.roadweaver.dynamic_plan_enabled.tooltip": "按固定频率围绕玩家进行增量规划，当新结构进入半径范围时加入规划。",
   "config.roadweaver.dynamic_plan_radius_chunks": "动态规划半径（区块）",
@@ -83,6 +83,8 @@
   "config.roadweaver.a_star_step.tooltip": "A* 在网格上的邻居采样间距。数值越大节点越少，性能更好但路径精度降低。默认 16。",
   "config.roadweaver.max_concurrent_generations": "最大并发生成数",
   "config.roadweaver.max_concurrent_generations.tooltip": "同时进行道路生成的最大数量上限。",
+  "config.roadweaver.a_star_max_steps": "A* 最大搜索步数",
+  "config.roadweaver.a_star_max_steps.tooltip": "A* 算法单次搜索的最大步数限制，防止在复杂地形中无限搜索。",
 
   "gui.roadweaver.map.menu.teleport": "传送到此处",
   "gui.roadweaver.map.teleport.success": "传送成功",

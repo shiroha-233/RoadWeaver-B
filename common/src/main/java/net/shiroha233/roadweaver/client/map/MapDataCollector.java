@@ -7,6 +7,7 @@ import net.shiroha233.roadweaver.persistence.WorldDataProvider;
 import net.shiroha233.roadweaver.persistence.sharded.RoadShardStorage;
 import net.minecraft.world.level.Level;
 import net.shiroha233.roadweaver.search.StructurePredictor;
+import net.shiroha233.roadweaver.search.StructureVerificationService;
 import net.shiroha233.roadweaver.config.ConfigService;
 import net.shiroha233.roadweaver.config.ModConfig;
 import net.shiroha233.roadweaver.planning.RoadPlanningService;
@@ -52,9 +53,11 @@ public final class MapDataCollector {
                         cfg.structureWhitelist(),
                         cfg.structureBlacklist()
                 );
-                if (!predicted.isEmpty()) {
+                // 在使用预测结果前做一次轻量验证，尽量剔除伪结构点
+                List<Records.StructureInfo> verified = StructureVerificationService.verifyPredictedStructures(level, predicted);
+                if (!verified.isEmpty()) {
                     Set<BlockPos> existing = new HashSet<>(structures);
-                    for (Records.StructureInfo info : predicted) {
+                    for (Records.StructureInfo info : verified) {
                         BlockPos p = info.pos();
                         if (!existing.contains(p)) {
                             structures.add(p);
@@ -115,9 +118,11 @@ public final class MapDataCollector {
                         cfg.structureWhitelist(),
                         cfg.structureBlacklist()
                 );
-                if (!predicted.isEmpty()) {
+                // 规划前验证预测结构点，避免将明显不存在的结构纳入路网规划
+                List<Records.StructureInfo> verified = StructureVerificationService.verifyPredictedStructures(level, predicted);
+                if (!verified.isEmpty()) {
                     Set<BlockPos> existing = new HashSet<>(structures);
-                    for (Records.StructureInfo info : predicted) {
+                    for (Records.StructureInfo info : verified) {
                         BlockPos p = info.pos();
                         if (!existing.contains(p)) {
                             int x = p.getX(), z = p.getZ();
@@ -296,9 +301,11 @@ public final class MapDataCollector {
                         cfg.structureWhitelist(),
                         cfg.structureBlacklist()
                 );
-                if (!predicted.isEmpty()) {
+                // 同样在动态规划和地图视图中使用前对预测结构点做验证
+                List<Records.StructureInfo> verified = StructureVerificationService.verifyPredictedStructures(level, predicted);
+                if (!verified.isEmpty()) {
                     Set<BlockPos> existing = new HashSet<>(structures);
-                    for (Records.StructureInfo info : predicted) {
+                    for (Records.StructureInfo info : verified) {
                         BlockPos p = info.pos();
                         int x = p.getX(), z = p.getZ();
                         boolean inRect = x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ;

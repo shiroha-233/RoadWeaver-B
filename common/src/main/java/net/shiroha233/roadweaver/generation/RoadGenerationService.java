@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class RoadGenerationService {
     private RoadGenerationService() {}
 
-    private static volatile ExecutorService EXECUTOR = null;
+    // Executor is managed centrally by ThreadPoolManager
     private static final ConcurrentHashMap<ServerLevel, ConcurrentLinkedQueue<Records.StructureConnection>> QUEUES = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<ServerLevel, ConcurrentHashMap<Long, Boolean>> PROCESSED = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<ServerLevel, AtomicInteger> RUNNING_COUNT = new ConcurrentHashMap<>();
@@ -35,7 +35,6 @@ public final class RoadGenerationService {
     public static void onServerStopping() {
         ALL_RUNNING.forEach(f -> f.cancel(true));
         ALL_RUNNING.clear();
-        if (EXECUTOR != null) EXECUTOR.shutdownNow();
         QUEUES.clear();
         PROCESSED.clear();
         RUNNING_COUNT.clear();
@@ -50,6 +49,7 @@ public final class RoadGenerationService {
         if (level == null || conn == null) return;
         WorldDataProvider provider = WorldDataProvider.getInstance();
         try {
+            if (Thread.currentThread().isInterrupted()) return;
             // 标记为 GENERATING
             List<Records.StructureConnection> origin0 = provider.getStructureConnections(level);
             List<Records.StructureConnection> all0 = origin0 != null ? new ArrayList<>(origin0) : new ArrayList<>();
@@ -67,11 +67,11 @@ public final class RoadGenerationService {
             // 配置
             var reg = level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.CONFIGURED_FEATURE);
             ConfiguredFeature<?, ?> cf = reg.get(ROAD_CF_ID);
-            RoadFeatureConfig cfg;
-            if (cf != null && cf.config() instanceof RoadFeatureConfig rfc) cfg = rfc; else cfg = defaultConfig();
+            RoadFeatureConfig cfg = (cf != null && cf.config() instanceof RoadFeatureConfig rfc) ? rfc : defaultConfig();
 
             // 生成
-            new Road(level, conn, cfg).generateRoad(5000);
+            if (Thread.currentThread().isInterrupted()) return;
+            new Road(level, conn, cfg).generateRoad(ConfigService.get().aStarMaxSteps());
 
             // 标记 COMPLETED
             List<Records.StructureConnection> origin = provider.getStructureConnections(level);
@@ -83,11 +83,9 @@ public final class RoadGenerationService {
                 }
             }
             provider.setStructureConnections(level, all);
-            {
-                long k = PlanningUtils.edgeKey(conn.from(), conn.to());
-                ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
-                if (proc != null) proc.remove(k);
-            }
+            long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+            ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+            if (proc != null) proc.remove(k);
         } catch (Throwable t) {
             // 标记 FAILED
             List<Records.StructureConnection> origin = provider.getStructureConnections(level);
@@ -99,20 +97,14 @@ public final class RoadGenerationService {
                 }
             }
             provider.setStructureConnections(level, all);
-            {
-                long k = PlanningUtils.edgeKey(conn.from(), conn.to());
-                ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
-                if (proc != null) proc.remove(k);
-            }
+            long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+            ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+            if (proc != null) proc.remove(k);
         }
     }
 
     public static void onServerStarted() {
-        int threads = Math.max(1, ConfigService.get().generationThreads());
-        if (EXECUTOR != null && !EXECUTOR.isShutdown() && !EXECUTOR.isTerminated()) {
-            EXECUTOR.shutdownNow();
-        }
-        EXECUTOR = Executors.newFixedThreadPool(threads);
+        // Executor lifecycle is centralized; here only clear local state
         ALL_RUNNING.clear();
         QUEUES.clear();
         PROCESSED.clear();
@@ -124,10 +116,6 @@ public final class RoadGenerationService {
         ALL_RUNNING.removeIf(f -> f == null || f.isDone() || f.isCancelled());
         ConcurrentLinkedQueue<Records.StructureConnection> q = QUEUES.computeIfAbsent(level, l -> new ConcurrentLinkedQueue<>());
         if (q.isEmpty()) return;
-        if (EXECUTOR == null || EXECUTOR.isShutdown() || EXECUTOR.isTerminated()) {
-            int threads = Math.max(1, ConfigService.get().generationThreads());
-            EXECUTOR = Executors.newFixedThreadPool(threads);
-        }
         int limit = Math.max(1, ConfigService.get().maxConcurrentGenerations());
         AtomicInteger cnt = RUNNING_COUNT.computeIfAbsent(level, l -> new AtomicInteger(0));
         java.util.List<ServerPlayer> players = new java.util.ArrayList<>();
@@ -152,9 +140,12 @@ public final class RoadGenerationService {
             }
             final Records.StructureConnection task = conn;
             cnt.incrementAndGet();
-            Future<?> fut = EXECUTOR.submit(() -> {
+            long epoch = net.shiroha233.roadweaver.runtime.ThreadPoolManager.currentEpoch();
+            Future<?> fut = net.shiroha233.roadweaver.runtime.ThreadPoolManager.generationExecutor().submit(() -> {
                 try {
-                    safeGenerate(level, task);
+                    if (Thread.currentThread().isInterrupted()) return;
+                    if (!net.shiroha233.roadweaver.runtime.ThreadPoolManager.isEpoch(epoch)) return;
+                    safeGenerate(level, task, epoch);
                 } finally {
                     cnt.decrementAndGet();
                 }
@@ -177,44 +168,77 @@ public final class RoadGenerationService {
         }
     }
 
-    private static void safeGenerate(ServerLevel level, Records.StructureConnection conn) {
+    private static void safeGenerate(ServerLevel level, Records.StructureConnection conn, long epoch) {
         try {
+            if (Thread.currentThread().isInterrupted()) return;
+            if (!net.shiroha233.roadweaver.runtime.ThreadPoolManager.isEpoch(epoch)) return;
             WorldDataProvider provider = WorldDataProvider.getInstance();
             var reg = level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.CONFIGURED_FEATURE);
             ConfiguredFeature<?, ?> cf = reg.get(ROAD_CF_ID);
-            RoadFeatureConfig cfg;
-            if (cf != null && cf.config() instanceof RoadFeatureConfig rfc) {
-                cfg = rfc;
+            RoadFeatureConfig cfg = (cf != null && cf.config() instanceof RoadFeatureConfig rfc) ? rfc : defaultConfig();
+            new Road(level, conn, cfg).generateRoad(ConfigService.get().aStarMaxSteps());
+            var server = level.getServer();
+            if (server != null) {
+                server.execute(() -> {
+                    if (!net.shiroha233.roadweaver.runtime.ThreadPoolManager.isEpoch(epoch)) return;
+                    List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
+                    List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
+                    for (int i = 0; i < all.size(); i++) {
+                        Records.StructureConnection c = all.get(i);
+                        if (sameEdge(c, conn)) {
+                            all.set(i, new Records.StructureConnection(c.from(), c.to(), Records.ConnectionStatus.COMPLETED));
+                        }
+                    }
+                    provider.setStructureConnections(level, all);
+                    long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+                    ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+                    if (proc != null) proc.remove(k);
+                });
             } else {
-                cfg = defaultConfig();
-            }
-            new Road(level, conn, cfg).generateRoad(5000);
-            List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
-            List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
-            for (int i = 0; i < all.size(); i++) {
-                Records.StructureConnection c = all.get(i);
-                if (sameEdge(c, conn)) {
-                    all.set(i, new Records.StructureConnection(c.from(), c.to(), Records.ConnectionStatus.COMPLETED));
+                if (!net.shiroha233.roadweaver.runtime.ThreadPoolManager.isEpoch(epoch)) return;
+                List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
+                List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
+                for (int i = 0; i < all.size(); i++) {
+                    Records.StructureConnection c = all.get(i);
+                    if (sameEdge(c, conn)) {
+                        all.set(i, new Records.StructureConnection(c.from(), c.to(), Records.ConnectionStatus.COMPLETED));
+                    }
                 }
-            }
-            provider.setStructureConnections(level, all);
-            {
+                provider.setStructureConnections(level, all);
                 long k = PlanningUtils.edgeKey(conn.from(), conn.to());
                 ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
                 if (proc != null) proc.remove(k);
             }
         } catch (Throwable t) {
             WorldDataProvider provider = WorldDataProvider.getInstance();
-            List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
-            List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
-            for (int i = 0; i < all.size(); i++) {
-                Records.StructureConnection c = all.get(i);
-                if (sameEdge(c, conn)) {
-                    all.set(i, new Records.StructureConnection(c.from(), c.to(), Records.ConnectionStatus.FAILED));
+            var server = level.getServer();
+            if (server != null) {
+                server.execute(() -> {
+                    if (!net.shiroha233.roadweaver.runtime.ThreadPoolManager.isEpoch(epoch)) return;
+                    List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
+                    List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
+                    for (int i = 0; i < all.size(); i++) {
+                        Records.StructureConnection c = all.get(i);
+                        if (sameEdge(c, conn)) {
+                            all.set(i, new Records.StructureConnection(c.from(), c.to(), Records.ConnectionStatus.FAILED));
+                        }
+                    }
+                    provider.setStructureConnections(level, all);
+                    long k = PlanningUtils.edgeKey(conn.from(), conn.to());
+                    ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
+                    if (proc != null) proc.remove(k);
+                });
+            } else {
+                if (!net.shiroha233.roadweaver.runtime.ThreadPoolManager.isEpoch(epoch)) return;
+                List<Records.StructureConnection> origin2 = provider.getStructureConnections(level);
+                List<Records.StructureConnection> all = origin2 != null ? new ArrayList<>(origin2) : new ArrayList<>();
+                for (int i = 0; i < all.size(); i++) {
+                    Records.StructureConnection c = all.get(i);
+                    if (sameEdge(c, conn)) {
+                        all.set(i, new Records.StructureConnection(c.from(), c.to(), Records.ConnectionStatus.FAILED));
+                    }
                 }
-            }
-            provider.setStructureConnections(level, all);
-            {
+                provider.setStructureConnections(level, all);
                 long k = PlanningUtils.edgeKey(conn.from(), conn.to());
                 ConcurrentHashMap<Long, Boolean> proc = PROCESSED.get(level);
                 if (proc != null) proc.remove(k);

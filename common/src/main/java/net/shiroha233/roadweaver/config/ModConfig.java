@@ -30,6 +30,7 @@ public final class ModConfig {
     private int generationThreads;
     private int maxConcurrentGenerations;
     private int aStarStep;                 // A* 采样步长（方块）
+    private int aStarMaxSteps;             // A* 寻路最大步数上限
     private int causewayMaxDepth;
     private int maxSlopeStepPerTwoSegments;
 
@@ -79,6 +80,7 @@ public final class ModConfig {
         this.generationThreads = Math.max(2, Math.min(3, Runtime.getRuntime().availableProcessors()));
         this.maxConcurrentGenerations = Math.max(1, Math.min(3, this.generationThreads));
         this.aStarStep = 16;
+        this.aStarMaxSteps = 10000;
         this.causewayMaxDepth = 1;
         this.maxSlopeStepPerTwoSegments = 1;
 
@@ -172,12 +174,14 @@ public final class ModConfig {
         if (maxConcurrentGenerations < 1) maxConcurrentGenerations = generationThreads;
         int maxCap = Math.max(1, generationThreads * 2);
         if (maxConcurrentGenerations > maxCap) maxConcurrentGenerations = maxCap;
-        if (aStarStep < 4) aStarStep = 16;            // 合理下限
-        if (aStarStep > 128) aStarStep = 128;         // 合理上限
-        if (causewayMaxDepth < 0) causewayMaxDepth = 0;
-        if (causewayMaxDepth > 12) causewayMaxDepth = 12;
-        if (maxSlopeStepPerTwoSegments < 0) maxSlopeStepPerTwoSegments = 0;
-        if (maxSlopeStepPerTwoSegments > 8) maxSlopeStepPerTwoSegments = 8;
+        if (aStarStep < 4) aStarStep = 16;            // 步数下限
+        if (aStarStep > 128) aStarStep = 128;         // 步数上限
+        if (aStarMaxSteps < 3000) aStarMaxSteps = 3000;  // 最小步数下限
+        if (aStarMaxSteps > 100000) aStarMaxSteps = 100000; // 最大步数上限
+        if (causewayMaxDepth < 0) causewayMaxDepth = 0;//最小填充深度
+        if (causewayMaxDepth > 12) causewayMaxDepth = 12;//最大填充深度
+        if (maxSlopeStepPerTwoSegments < 0) maxSlopeStepPerTwoSegments = 0;//最小斜坡步数
+        if (maxSlopeStepPerTwoSegments > 8) maxSlopeStepPerTwoSegments = 8;//最大斜坡步数
 
         // 新增字段校验
         if (roadWidth < 0) roadWidth = 0;            // 0=自动
@@ -249,6 +253,10 @@ public final class ModConfig {
     // A* 采样步长
     public int aStarStep() { return aStarStep; }
     public void setAStarStep(int v) { this.aStarStep = v; }
+
+    // A* 最大步数
+    public int aStarMaxSteps() { return aStarMaxSteps; }
+    public void setAStarMaxSteps(int v) { this.aStarMaxSteps = v; }
 
     public int causewayMaxDepth() { return causewayMaxDepth; }
     public void setCausewayMaxDepth(int v) { this.causewayMaxDepth = v; }

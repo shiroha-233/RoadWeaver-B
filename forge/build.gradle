@@ -100,9 +100,9 @@ dependencies {
     modApi("dev.architectury:architectury-forge:9.2.14")
     include("dev.architectury:architectury-forge:9.2.14")
 
-    // Cloth Config API for Forge
-    modCompileOnly "me.shedaniel.cloth:cloth-config-forge:11.1.136"
-    modRuntimeOnly "me.shedaniel.cloth:cloth-config-forge:11.1.136"
+    // Cloth Config API for Forge - Jar-in-Jar include
+    modApi("me.shedaniel.cloth:cloth-config-forge:11.1.136")
+    include("me.shedaniel.cloth:cloth-config-forge:11.1.136")
 }
  
 // Source JAR 组装（合并 common 源码）
@@ -124,7 +124,6 @@ sourceSets {
     main {
         java {
             // Avoid JPMS split-package: keep top-level network package only in common
-            exclude 'net/shiroha233/roadweaver/network/ClientNetBridgeImpl.java'
         }
         resources {
             exclude 'assets/roadweaver/lang/*.json'

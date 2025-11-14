@@ -13,17 +13,17 @@ import java.util.*;
 final class BasicAStarPathfinder {
     private BasicAStarPathfinder() {}
     
-    private static final double ORTHO_STEP_COST = 1.0;//基础步进成本，数值越大越偏好直线路径
-    private static final double DIAG_STEP_COST = 1.0;//对角步进成本，数值越大越偏好直线路径
-    private static final int ELEVATION_WEIGHT = 40;//高度成本权重，数值越大越偏好平坦区域，防止道路贴近悬崖边或坑洼
-    private static final int BIOME_BASE_COST = 12;// biome 基础成本，暂未使用
-    private static final int BIOME_WEIGHT = 2;// biome 权重，暂未使用
-    private static final int STABILITY_WEIGHT = 40;// 稳定性权重，数值越大越偏好平坦区域，防止道路贴近悬崖边或坑洼
-    private static final int WATER_DEPTH_WEIGHT = 80;// 水深权重，数值越大越偏好远离水域
-    private static final int NEAR_WATER_COST = 80;// 水边成本，数值越大越偏好远离水域
-    private static final double HEURISTIC_WEIGHT = 30.0;//启发式权重，积极朝终点方向推进，路径更直，但也更可能忽视局部最优绕路
+    private static final double ORTHO_STEP_COST = 1.0;//正交步进基础成本，数值越大越不倾向采用正交步进
+    private static final double DIAG_STEP_COST = 1.0;//对角步进基础成本，数值越大越不倾向采用对角步进
+    private static final int ELEVATION_WEIGHT = 80;//高度成本权重，数值越大越偏好平坦区域，防止道路贴近悬崖边或坑洼
+    private static final int BIOME_BASE_COST = 12;// 特定生物群系基础成本（河流/海洋/深海），已参与计算
+    private static final int BIOME_WEIGHT = 2;// 生物群系成本权重，实际代价为 BIOME_BASE_COST * BIOME_WEIGHT
+    private static final int STABILITY_WEIGHT = 15;// 稳定性权重，数值越大越偏好平坦区域，防止道路贴近悬崖边或坑洼
+    private static final int WATER_DEPTH_WEIGHT = 40;// 水深权重，数值越大越偏好远离水域
+    private static final int NEAR_WATER_COST = 40;// 水边成本，数值越大越偏好远离水域
+    private static final double HEURISTIC_WEIGHT = 20.0;//启发式权重，积极朝终点方向推进，路径更直，但也更可能忽视局部最优绕路
     private static final double HEURISTIC_EPSILON = 0.2;//启发式epsilon
-    private static final double DEVIATION_WEIGHT = 5.0;//偏差权重，数值越大越偏好直线路径
+    private static final double DEVIATION_WEIGHT = 1.0;//偏差权重，数值越大越偏好直线路径
 
     public static List<Records.RoadSegmentPlacement> calculateLandPath(BlockPos startGround,
                                                                        BlockPos endGround,
@@ -47,6 +47,9 @@ final class BasicAStarPathfinder {
 
         int stepsBudget = Math.max(1, maxSteps);
         while (!openSet.isEmpty() && stepsBudget-- > 0) {
+            if (Thread.currentThread().isInterrupted()) {
+                return null;
+            }
             Node current = openSet.poll();
             if (current == null) break;
 
@@ -58,6 +61,9 @@ final class BasicAStarPathfinder {
             allNodes.remove(current.pos);
 
             for (int[] off : neighborOffsets) {
+                if (Thread.currentThread().isInterrupted()) {
+                    return null;
+                }
                 BlockPos nxz = current.pos.offset(off[0], 0, off[1]);
                 int y = RoadPathCalculator.heightSampler(nxz.getX(), nxz.getZ(), level);
                 BlockPos np = new BlockPos(nxz.getX(), y, nxz.getZ());
