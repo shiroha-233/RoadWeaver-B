@@ -30,12 +30,9 @@ public class ClientKeyMappings {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null) return;
             if (OPEN_MAP == null) return;
+            if (mc.screen instanceof RoadMapScreen) return;
             while (OPEN_MAP.consumeClick()) {
-                if (mc.screen instanceof RoadMapScreen) {
-                    mc.setScreen(null);
-                } else {
-                    mc.setScreen(new RoadMapScreen());
-                }
+                mc.setScreen(new RoadMapScreen());
             }
         }
     }

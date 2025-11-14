@@ -1,6 +1,7 @@
 package net.shiroha233.roadweaver.client.map;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -14,7 +15,9 @@ import net.shiroha233.roadweaver.util.ComputeService;
 import net.minecraft.core.BlockPos;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+/**
+ * 
+ */
 public class RoadMapScreen extends Screen {
     private static final ResourceLocation MAP_TEXTURE = new ResourceLocation("roadweaver", "textures/gui/map.png");
     private static final int TEX_W = 1536;
@@ -243,6 +246,23 @@ public class RoadMapScreen extends Screen {
     public void removed() {
         super.removed();
         MapSnapshotCache.scheduleClear(1000);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Minecraft mc = this.minecraft;
+        if (mc != null) {
+            for (KeyMapping mapping : mc.options.keyMappings) {
+                if ("key.roadweaver.open_map".equals(mapping.getName()) && mapping.matches(keyCode, scanCode)) {
+                    while (mapping.consumeClick()) {
+                        // 清空残留点击，避免下一帧重新打开地图
+                    }
+                    this.onClose();
+                    return true;
+                }
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     /**

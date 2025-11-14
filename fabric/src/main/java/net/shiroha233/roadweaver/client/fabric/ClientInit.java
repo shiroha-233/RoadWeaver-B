@@ -28,12 +28,9 @@ public class ClientInit implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
+            if (client.screen instanceof RoadMapScreen) return;
             while (OPEN_MAP.consumeClick()) {
-                if (client.screen instanceof RoadMapScreen) {
-                    client.setScreen(null);
-                } else {
-                    client.setScreen(new RoadMapScreen());
-                }
+                client.setScreen(new RoadMapScreen());
             }
         });
     }
