@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class RoadGenerationService {
     private RoadGenerationService() {}
 
-    // Executor is managed centrally by ThreadPoolManager
+    // 生命周期由中央管理器管理
     private static final ConcurrentHashMap<ServerLevel, ConcurrentLinkedQueue<Records.StructureConnection>> QUEUES = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<ServerLevel, ConcurrentHashMap<Long, Boolean>> PROCESSED = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<ServerLevel, AtomicInteger> RUNNING_COUNT = new ConcurrentHashMap<>();
@@ -104,7 +104,7 @@ public final class RoadGenerationService {
     }
 
     public static void onServerStarted() {
-        // Executor lifecycle is centralized; here only clear local state
+        // 生命周期由中央管理器管理；这里仅清空本地状态
         ALL_RUNNING.clear();
         QUEUES.clear();
         PROCESSED.clear();

@@ -52,9 +52,10 @@ public final class SpawnCabinService {
         // 放置模板（内部目前返回实例，占位 AABB）
         StructureInstance inst = StructurePlacer.place(level, bp, TEMPLATE_ID, anchor, Rotation.NONE, Mirror.NONE, bounds, blend);
 
-        // 写入索引与世界数据（最少记录锚点）
+        // 写入索引与世界数据（记录锚点与实例）
         StructureSystem.index(level).add(inst);
         provider.addStructureLocation(level, anchor);
+        provider.addStructureInstance(level, inst);
         return true;
     }
 

@@ -3,6 +3,7 @@ package net.shiroha233.roadweaver.persistence.attachments;
 import com.mojang.serialization.Codec;
 import net.shiroha233.roadweaver.RoadWeaver;
 import net.shiroha233.roadweaver.helpers.Records;
+import net.shiroha233.roadweaver.structures.model.StructureInstance;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.resources.ResourceLocation;
@@ -24,6 +25,11 @@ public class WorldDataAttachment {
     public static final AttachmentType<Records.StructureLocationData> STRUCTURE_LOCATIONS = AttachmentRegistry.createPersistent(
             new ResourceLocation(RoadWeaver.MOD_ID, "village_locations"),
             Records.StructureLocationData.CODEC
+    );
+
+    public static final AttachmentType<List<StructureInstance>> STRUCTURE_INSTANCES = AttachmentRegistry.createPersistent(
+            new ResourceLocation(RoadWeaver.MOD_ID, "structure_instances"),
+            StructureInstance.CODEC.listOf()
     );
 
 

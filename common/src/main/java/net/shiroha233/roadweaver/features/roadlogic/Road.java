@@ -42,11 +42,12 @@ public final class Road {
 
         BlockPos start = connection.from();
         BlockPos end = connection.to();
-        List<Records.RoadSegmentPlacement> segments = RoadPathCalculator.calculateAStarRoadPath(start, end, width, level, maxSteps);
+        TerrainSamplingCache cache = new TerrainSamplingCache();
+        List<Records.RoadSegmentPlacement> segments = RoadPathCalculator.calculateAStarRoadPath(start, end, width, level, maxSteps, cache);
         if (segments == null || segments.size() < 5) return;
-        List<Records.RoadSpan> spans = RoadPathCalculator.extractSpans(segments, level);
+        List<Records.RoadSpan> spans = RoadPathCalculator.extractSpans(segments, level, cache);
 
-        List<Integer> targetY = computeTargetY(level, segments, spans);
+        List<Integer> targetY = computeTargetY(level, segments, spans, cache);
 
         Records.RoadData rd = new Records.RoadData(width, type, materials, segments, spans, targetY);
         RoadShardStorage.addRoad(level, rd);
@@ -58,12 +59,12 @@ public final class Road {
         return 3;
     }
     
-    private static List<Integer> computeTargetY(ServerLevel level, List<Records.RoadSegmentPlacement> segments, List<Records.RoadSpan> spans) {
+    private static List<Integer> computeTargetY(ServerLevel level, List<Records.RoadSegmentPlacement> segments, List<Records.RoadSpan> spans, TerrainSamplingCache cache) {
         int n = segments.size();
         List<BlockPos> centers = new ArrayList<>(n);
         for (Records.RoadSegmentPlacement s : segments) centers.add(s.middlePos());
 
-        // Map spans to index ranges for BRIDGE
+        // 将 spans 映射到索引范围，用于 BRIDGE
         boolean[] isBridge = new boolean[n];
         if (spans != null && !spans.isEmpty()) {
             Map<Long, Integer> indexMap = new HashMap<>();
@@ -87,7 +88,7 @@ public final class Road {
             int hi = Math.min(n - 1, i + avg);
             for (int j = lo; j <= hi; j++) {
                 BlockPos sp = centers.get(j);
-                int yTop = RoadPathCalculator.heightSampler(sp.getX(), sp.getZ(), level);
+                int yTop = RoadPathCalculator.heightSampler(cache, sp.getX(), sp.getZ(), level);
                 sum += yTop; cnt++;
             }
             base[i] = cnt > 0 ? (int) Math.round(sum / (double) cnt) : centers.get(i).getY();
@@ -97,7 +98,7 @@ public final class Road {
         // 对每个连续非桥梁段进行平滑，以避免奇偶振荡
         int i = 0;
         while (i < n) {
-            // skip bridge indices
+            // 跳过桥梁索引
             while (i < n && isBridge[i]) i++;
             int s = i;
             while (i < n && !isBridge[i]) i++;

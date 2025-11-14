@@ -12,9 +12,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureCheck;
 import net.minecraft.world.level.levelgen.structure.StructureCheckResult;
-import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.core.Registry;
-import net.minecraft.core.Holder;
 
 import net.shiroha233.roadweaver.helpers.Records;
 

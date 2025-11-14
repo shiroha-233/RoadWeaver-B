@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.LevelLoadingScreen;
 import net.minecraft.network.chat.Component;
+import net.shiroha233.roadweaver.client.tips.LoadingTipsRenderer;
 import net.shiroha233.roadweaver.generation.InitialGenManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LevelLoadingScreenMixin {
     @Inject(method = "render", at = @At("TAIL"))
     private void roadweaver$renderProgress(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        LoadingTipsRenderer.render(graphics);
         if (!InitialGenManager.isActive()) return;
         int total = InitialGenManager.getTotal();
         int done = InitialGenManager.getDone();

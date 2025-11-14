@@ -21,7 +21,7 @@ public final class ComputeService {
     }
 
     public static void shutdownNow() {
-        // Delegate to central manager to ensure epoch rollover and full pool shutdown
+        //委托中央管理器以确保纪元轮换和完整的池关闭
         ThreadPoolManager.onServerStopping();
     }
 }

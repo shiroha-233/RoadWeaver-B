@@ -6,6 +6,7 @@ import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.DynamicOps;
 import net.shiroha233.roadweaver.helpers.Records;
 import net.shiroha233.roadweaver.persistence.WorldDataProvider;
+import net.shiroha233.roadweaver.structures.model.StructureInstance;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -34,12 +35,14 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
     public static class Data extends SavedData {
         private Records.StructureLocationData structureLocations = new Records.StructureLocationData(new ArrayList<>());
         private List<Records.StructureConnection> connections = new ArrayList<>();
+        private List<StructureInstance> structureInstances = new ArrayList<>();
         private Set<Long> plannedTileKeys = new HashSet<>();
         private Map<Long, Long> plannedTileCenters = new HashMap<>();
 
         // NBT 字段名
         private static final String KEY_LOCATIONS = "structure_locations";
         private static final String KEY_CONNECTIONS = "connections";
+        private static final String KEY_INSTANCES = "structure_instances";
         private static final String KEY_PLANNED_TILES = "planned_tiles";
         private static final String KEY_PLANNED_TILE_CENTERS = "planned_tile_centers";
 
@@ -63,7 +66,14 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
                 res.result().ifPresent(val -> data.connections = val);
             }
 
-            // legacy road data list is no longer loaded
+            // 结构实例（从 ListTag 读取）
+            if (tag.contains(KEY_INSTANCES)) {
+                Tag instTag = tag.get(KEY_INSTANCES);
+                DataResult<List<StructureInstance>> res = StructureInstance.CODEC.listOf().parse(new Dynamic<>(ops, instTag));
+                res.result().ifPresent(val -> data.structureInstances = val);
+            }
+
+            // 遗留道路数据列表不再加载
 
             if (tag.contains(KEY_PLANNED_TILES)) {
                 Tag t = tag.get(KEY_PLANNED_TILES);
@@ -94,7 +104,12 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
                     .result()
                     .ifPresent(nbt -> tag.put(KEY_CONNECTIONS, nbt));
 
-            // no longer saving legacy road data list
+            // 结构实例列表
+            StructureInstance.CODEC.listOf().encodeStart(ops, structureInstances)
+                    .result()
+                    .ifPresent(nbt -> tag.put(KEY_INSTANCES, nbt));
+
+            // 遗留道路数据列表不再保存
 
             Codec.list(Codec.LONG).encodeStart(ops, new java.util.ArrayList<>(plannedTileKeys))
                     .result()
@@ -126,7 +141,16 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
             setDirty();
         }
 
-        // removed legacy road data list accessors
+        public List<StructureInstance> getStructureInstances() {
+            return structureInstances;
+        }
+
+        public void setStructureInstances(List<StructureInstance> instances) {
+            this.structureInstances = Objects.requireNonNullElseGet(instances, ArrayList::new);
+            setDirty();
+        }
+
+        // 遗留道路数据列表访问器已移除
 
         public Set<Long> getPlannedTileKeys() {
             return plannedTileKeys;
@@ -171,7 +195,7 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
         getOrCreate(level).setConnections(connections);
     }
 
-    // removed legacy road data list overrides
+    // 遗留道路数据列表重载已移除
 
     @Override
     public Set<Long> getPlannedTileKeys(ServerLevel level) {
@@ -191,5 +215,15 @@ public class ForgeWorldDataProvider extends WorldDataProvider {
     @Override
     public void setPlannedTileCenters(ServerLevel level, Map<Long, Long> centers) {
         getOrCreate(level).setPlannedTileCenters(centers);
+    }
+
+    @Override
+    public List<StructureInstance> getStructureInstances(ServerLevel level) {
+        return getOrCreate(level).getStructureInstances();
+    }
+
+    @Override
+    public void setStructureInstances(ServerLevel level, List<StructureInstance> instances) {
+        getOrCreate(level).setStructureInstances(instances);
     }
 }

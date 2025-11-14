@@ -20,6 +20,37 @@ public final class BridgeSegmentPlanner {
 
     public static Context newContext() { return new Context(); }
 
+    private static int clampDeckY(int candidateDeckY,
+                                  Integer lastDeckY,
+                                  int deckY,
+                                  ModConfig cfg,
+                                  boolean inRamp,
+                                  boolean approachDeck) {
+        int segDeckY = candidateDeckY;
+        if (lastDeckY != null) {
+            int stepDeck = Math.max(0, Math.min(8, cfg.maxSlopeStepPerTwoSegments()));
+            if (stepDeck > 0) {
+                if (segDeckY > lastDeckY + stepDeck) segDeckY = lastDeckY + stepDeck;
+                if (segDeckY < lastDeckY - stepDeck) segDeckY = lastDeckY - stepDeck;
+            }
+
+            if (inRamp) {
+                int prevDist = Math.abs(lastDeckY - deckY);
+                int newDist = Math.abs(segDeckY - deckY);
+                if (approachDeck) {
+                    if (newDist > prevDist) {
+                        segDeckY = lastDeckY;
+                    }
+                } else {
+                    if (newDist < prevDist) {
+                        segDeckY = lastDeckY;
+                    }
+                }
+            }
+        }
+        return segDeckY;
+    }
+
     public static void processSegment(WorldGenLevel world,
                                       Records.RoadSegmentPlacement seg,
                                       BlockPos middle,
@@ -38,6 +69,9 @@ public final class BridgeSegmentPlanner {
         boolean placePier = true;
         boolean placeRail = true;
 
+        boolean inRamp = false;
+        boolean approachDeck = false;
+
         // 进入区间初始化
         if (!ctx.insideBridgeRange) {
             for (int[] r : bridgeRanges) {
@@ -53,6 +87,9 @@ public final class BridgeSegmentPlanner {
                     int dStart = i - r[0];
                     int dEnd = r[1] - i;
                     if (dStart < rampN || dEnd < rampN) {
+                        inRamp = true;
+                        approachDeck = (dStart <= dEnd);
+
                         double f = (dStart < rampN) ? (dStart / (double) rampN) : (dEnd / (double) rampN);
                         f = Math.max(0.0, Math.min(1.0, f));
                         int rampBaseY = baseYForThis;
@@ -71,11 +108,7 @@ public final class BridgeSegmentPlanner {
             }
         }
 
-        if (ctx.lastBridgeDeckY != null) {
-            int stepDeck = Math.max(0, Math.min(8, cfg.maxSlopeStepPerTwoSegments()));
-            if (segDeckY > ctx.lastBridgeDeckY + stepDeck) segDeckY = ctx.lastBridgeDeckY + stepDeck;
-            if (segDeckY < ctx.lastBridgeDeckY - stepDeck) segDeckY = ctx.lastBridgeDeckY - stepDeck;
-        }
+        segDeckY = clampDeckY(segDeckY, ctx.lastBridgeDeckY, deckY, cfg, inRamp, approachDeck);
         ctx.lastBridgeDeckY = segDeckY;
 
         if (ctx.insideBridgeRange && i >= ctx.currentRangeEnd) {

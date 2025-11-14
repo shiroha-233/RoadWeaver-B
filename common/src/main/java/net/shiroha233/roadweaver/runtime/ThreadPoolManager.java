@@ -25,7 +25,7 @@ public final class ThreadPoolManager {
 
     public static synchronized void onServerStarted(MinecraftServer server) {
         EPOCH.incrementAndGet();
-        // compute pool: CPU-1
+        // 计算池: CPU-1
         int computeThreads;
         try {
             int cores = Runtime.getRuntime().availableProcessors();
@@ -38,7 +38,7 @@ public final class ThreadPoolManager {
         }
         COMPUTE_EXEC = Executors.newFixedThreadPool(computeThreads, namedFactory("RW-Compute"));
 
-        // generation pool: from config
+        // 生成池: 从配置
         int genThreads = Math.max(1, ConfigService.get().generationThreads());
         if (GENERATION_EXEC != null && !GENERATION_EXEC.isShutdown() && !GENERATION_EXEC.isTerminated()) {
             try { GENERATION_EXEC.shutdownNow(); } catch (Throwable ignored) {}

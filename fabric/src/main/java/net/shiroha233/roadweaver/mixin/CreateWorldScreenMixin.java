@@ -4,7 +4,6 @@ import net.shiroha233.roadweaver.client.fabric.ConfigScreenFactoryImpl;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.tabs.GridLayoutTab;
-import net.minecraft.client.gui.layouts.GridLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
@@ -14,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Mixin to add RoadWeaver config button to the Create World screen
+ * Mixin 用于在创建世界界面添加 RoadWeaver 配置按钮
  */
 @Mixin(targets = "net.minecraft.client.gui.screens.worldselection.CreateWorldScreen$GameTab")
 public abstract class CreateWorldScreenMixin extends GridLayoutTab {

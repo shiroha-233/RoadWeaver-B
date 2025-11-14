@@ -29,7 +29,8 @@ final class BasicAStarPathfinder {
                                                                        BlockPos endGround,
                                                                        int width,
                                                                        ServerLevel level,
-                                                                       int maxSteps) {
+                                                                       int maxSteps,
+                                                                       TerrainSamplingCache cache) {
         PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.f));
         Map<BlockPos, Node> allNodes = new HashMap<>();
         Set<BlockPos> closed = new HashSet<>();
@@ -65,7 +66,7 @@ final class BasicAStarPathfinder {
                     return null;
                 }
                 BlockPos nxz = current.pos.offset(off[0], 0, off[1]);
-                int y = RoadPathCalculator.heightSampler(nxz.getX(), nxz.getZ(), level);
+                int y = RoadPathCalculator.heightSampler(cache, nxz.getX(), nxz.getZ(), level);
                 BlockPos np = new BlockPos(nxz.getX(), y, nxz.getZ());
                 if (closed.contains(np)) continue;
 
@@ -74,11 +75,11 @@ final class BasicAStarPathfinder {
                 int elevation = Math.abs(y - current.pos.getY());
                 int offsetSum = Math.abs(Math.abs(off[0])) + Math.abs(off[1]);
                 double stepCost = (offsetSum == 2 * d) ? DIAG_STEP_COST : ORTHO_STEP_COST;
-                int stabilityCost = RoadPathCalculator.calculateTerrainStability(np, y, level);
+                int stabilityCost = RoadPathCalculator.calculateTerrainStability(cache, np, y, level);
                 int sea = level.getSeaLevel();
-                boolean waterColumn = RoadPathCalculator.isColumnWater(nxz.getX(), nxz.getZ(), level);
-                boolean nearWater = RoadPathCalculator.isNearWaterLike(nxz.getX(), nxz.getZ(), level);
-                int oceanFloor = RoadPathCalculator.oceanFloorSampler(nxz.getX(), nxz.getZ(), level);
+                boolean waterColumn = RoadPathCalculator.isColumnWater(cache, nxz.getX(), nxz.getZ(), level);
+                boolean nearWater = RoadPathCalculator.isNearWaterLike(cache, nxz.getX(), nxz.getZ(), level);
+                int oceanFloor = RoadPathCalculator.oceanFloorSampler(cache, nxz.getX(), nxz.getZ(), level);
                 int waterDepth = Math.max(0, sea - oceanFloor);
                 int waterDepthCost = waterColumn ? waterDepth * WATER_DEPTH_WEIGHT : 0;
                 int nearWaterCost = nearWater ? NEAR_WATER_COST : 0;

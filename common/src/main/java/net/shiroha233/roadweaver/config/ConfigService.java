@@ -44,7 +44,7 @@ public final class ConfigService {
         } else {
             save();
         }
-        // ensure defaults and new fields are populated
+        // 确保默认值和新字段被填充
         try {
             INSTANCE.sanitize();
         } catch (Throwable t) {

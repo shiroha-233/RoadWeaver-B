@@ -12,6 +12,7 @@ import net.shiroha233.roadweaver.persistence.WorldDataProvider;
 import net.shiroha233.roadweaver.util.ComputeService;
 import net.shiroha233.roadweaver.persistence.sharded.RoadShardStorage;
 import net.shiroha233.roadweaver.structures.StructureSystem;
+import net.shiroha233.roadweaver.structures.index.StructureIndexRestorer;
 
 public final class ServerPlanningHooks {
     private ServerPlanningHooks() {}
@@ -24,6 +25,8 @@ public final class ServerPlanningHooks {
             net.shiroha233.roadweaver.runtime.ThreadPoolManager.onServerStarted(server);
             ServerLevel level = server.getLevel(Level.OVERWORLD);
             if (level == null) return;
+            // 从持久化数据恢复结构索引（例如出生点小屋等结构实例）
+            StructureIndexRestorer.restore(level);
             boolean dedicated = server.isDedicatedServer();
             if (dedicated) {
                 RoadGenerationService.onServerStarted();

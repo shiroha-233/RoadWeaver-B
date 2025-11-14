@@ -131,6 +131,10 @@
   "config.roadweaver.bridge_ramp_segments": "桥面坡道段数",
   "config.roadweaver.bridge_ramp_segments.tooltip": "桥面坡道段数。",
   "config.roadweaver.causeway_max_depth": "回填最大深度（方块）",
-  "config.roadweaver.causeway_max_depth.tooltip": "当地表下方不稳固时，向下回填的最大层数（0-12）。设为0则不回填。"
-
+  "config.roadweaver.causeway_max_depth.tooltip": "当地表下方不稳固时，向下回填的最大层数（0-12）。设为0则不回填。",
+  "tip.roadweaver.loading.1": "按 H 打开 RoadWeaver 地图。",
+  "tip.roadweaver.loading.2": "你可以在 RoadWeaver 设置中配置初始规划半径。",
+  "tip.roadweaver.loading.3": "较大的初始规划半径可能会显著降低新世界的创建速度。",
+  "tip.roadweaver.loading.4": "初始加载是为了确保你进入世界时有完整的道路。",
+  "tip.roadweaver.loading.5": "不要 tp 到未铺设的道路区域！"
 }
