@@ -12,9 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 final class TerrainSamplingCache {
-    private final Map<Long, Integer> heightCache = new HashMap<>();
     private final Map<Long, Boolean> waterCache = new HashMap<>();
-    private final Map<Long, Integer> oceanFloorCache = new HashMap<>();
     private final Map<Long, Boolean> nearWaterCache = new HashMap<>();
     private final Map<Long, Boolean> columnWaterCache = new HashMap<>();
 
@@ -23,12 +21,14 @@ final class TerrainSamplingCache {
     }
 
     int height(ServerLevel level, int x, int z) {
-        long key = hashXZ(x, z);
-        Integer cached = heightCache.get(key);
-        if (cached != null) return cached;
-        RandomState rs = level.getChunkSource().getGeneratorState().randomState();
-        int h = level.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, level, rs);
-        heightCache.put(key, h);
+        var generator = level.getChunkSource().getGenerator();
+        int h;
+        if (generator instanceof RoadweaverHeightAccess access) {
+            h = access.roadweaver$getCachedBaseHeight(level, x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES);
+        } else {
+            RandomState rs = level.getChunkSource().getGeneratorState().randomState();
+            h = generator.getBaseHeight(x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, level, rs);
+        }
         return h;
     }
 
@@ -43,12 +43,14 @@ final class TerrainSamplingCache {
     }
 
     int oceanFloor(ServerLevel level, int x, int z) {
-        long key = hashXZ(x, z);
-        Integer cached = oceanFloorCache.get(key);
-        if (cached != null) return cached;
-        RandomState rs = level.getChunkSource().getGeneratorState().randomState();
-        int h = level.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, rs);
-        oceanFloorCache.put(key, h);
+        var generator = level.getChunkSource().getGenerator();
+        int h;
+        if (generator instanceof RoadweaverHeightAccess access) {
+            h = access.roadweaver$getCachedBaseHeight(level, x, z, Heightmap.Types.OCEAN_FLOOR_WG);
+        } else {
+            RandomState rs = level.getChunkSource().getGeneratorState().randomState();
+            h = generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, rs);
+        }
         return h;
     }
 

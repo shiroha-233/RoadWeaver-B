@@ -21,9 +21,9 @@ final class BasicAStarPathfinder {
     private static final int STABILITY_WEIGHT = 15;// 稳定性权重，数值越大越偏好平坦区域，防止道路贴近悬崖边或坑洼
     private static final int WATER_DEPTH_WEIGHT = 40;// 水深权重，数值越大越偏好远离水域
     private static final int NEAR_WATER_COST = 40;// 水边成本，数值越大越偏好远离水域
-    private static final double HEURISTIC_WEIGHT = 20.0;//启发式权重，积极朝终点方向推进，路径更直，但也更可能忽视局部最优绕路
+    private static final double HEURISTIC_WEIGHT = 15.0;//启发式权重，积极朝终点方向推进，路径更直，但也更可能忽视局部最优绕路
     private static final double HEURISTIC_EPSILON = 0.2;//启发式epsilon
-    private static final double DEVIATION_WEIGHT = 1.0;//偏差权重，数值越大越偏好直线路径
+    private static final double DEVIATION_WEIGHT = 0.5;//偏差权重，数值越大越偏好直线路径
 
     public static List<Records.RoadSegmentPlacement> calculateLandPath(BlockPos startGround,
                                                                        BlockPos endGround,

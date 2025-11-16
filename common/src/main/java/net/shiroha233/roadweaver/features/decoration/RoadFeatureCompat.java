@@ -11,9 +11,6 @@ public final class RoadFeatureCompat {
 
     private static final Set<Block> DONT_PLACE = new HashSet<>();
     static {
-        DONT_PLACE.add(Blocks.PACKED_ICE);
-        DONT_PLACE.add(Blocks.ICE);
-        DONT_PLACE.add(Blocks.BLUE_ICE);
         DONT_PLACE.add(Blocks.TALL_SEAGRASS);
         DONT_PLACE.add(Blocks.MANGROVE_ROOTS);
     }

@@ -59,6 +59,8 @@
   "config.roadweaver.road_width.tooltip": "指定道路宽度（方块）",
   "config.roadweaver.lamp_interval": "路灯间隔（段）",
   "config.roadweaver.lamp_interval.tooltip": "指定路灯间隔（段）",
+  "config.roadweaver.road_clear_height": "道路清障高度（方块）",
+  "config.roadweaver.road_clear_height.tooltip": "非隧道模式下，从路面上方开始向上清理的高度。数值越大，头顶挖空越高，但越容易切掉周围地形/结构。",
   "config.roadweaver.enable_lamp": "启用路灯",
   "config.roadweaver.enable_lamp.tooltip": "每隔N个道路段放置一次路灯/路标，数值越大越稀疏。",
   "config.roadweaver.selected_artificial_preset_ids": "人工道路材质预设ID（可多选）",

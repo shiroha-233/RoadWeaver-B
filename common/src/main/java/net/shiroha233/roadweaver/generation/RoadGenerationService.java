@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.shiroha233.roadweaver.features.config.RoadFeatureConfig;
 import net.shiroha233.roadweaver.features.roadlogic.Road;
-import net.shiroha233.roadweaver.features.roadlogic.RoadPathCalculator;
 import net.shiroha233.roadweaver.helpers.Records;
 import net.shiroha233.roadweaver.persistence.WorldDataProvider;
 import net.shiroha233.roadweaver.planning.PlanningUtils;
@@ -38,7 +37,6 @@ public final class RoadGenerationService {
         QUEUES.clear();
         PROCESSED.clear();
         RUNNING_COUNT.clear();
-        RoadPathCalculator.clearCaches();
         RoadPlanningService.resetAll();
     }
 

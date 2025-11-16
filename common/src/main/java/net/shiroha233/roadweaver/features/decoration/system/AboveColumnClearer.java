@@ -12,7 +12,10 @@ public final class AboveColumnClearer {
 
     public static void clearAboveColumn(WorldGenLevel world, BlockPos surfacePos, ModConfig cfg) {
         boolean tunnel = cfg != null && cfg.tunnelEnabled();
-        int maxH = tunnel ? Math.max(2, Math.min(16, cfg.tunnelClearHeight())) : 3;
+        int defaultClear = (cfg != null ? cfg.roadClearHeight() : 3);
+        int maxH = tunnel
+                ? Math.max(2, Math.min(16, cfg.tunnelClearHeight()))
+                : Math.max(1, Math.min(16, defaultClear));
         for (int i = 0; i < maxH; i++) {
             BlockPos up = surfacePos.above(i);
             BlockState st = world.getBlockState(up);
@@ -23,8 +26,11 @@ public final class AboveColumnClearer {
                 }
             }
             if (tunnel) {
-                if (st.is(BlockTags.LEAVES) || st.is(BlockTags.LOGS) || !st.canOcclude()) {
+                // 隧道模式：允许挖掉除木头/栅栏以外的大部分方块（包括石头、冰等），高度由 tunnelClearHeight 控制
+                if (!st.is(BlockTags.LOGS) && !st.is(BlockTags.FENCES)) {
                     world.setBlock(up, Blocks.AIR.defaultBlockState(), 3);
+                } else {
+                    break;
                 }
             } else {
                 if (!st.is(BlockTags.LOGS) && !st.is(BlockTags.FENCES)) {

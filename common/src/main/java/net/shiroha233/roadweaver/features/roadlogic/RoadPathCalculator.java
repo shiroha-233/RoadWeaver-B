@@ -170,7 +170,4 @@ public final class RoadPathCalculator {
 
         return spans;
     }
-
-    public static void clearCaches() {
-    }
 }

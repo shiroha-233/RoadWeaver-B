@@ -36,6 +36,7 @@ public final class ModConfig {
 
     private int roadWidth;         
     private int lampInterval;      
+    private int roadClearHeight;
     private boolean tunnelEnabled;
     private int tunnelClearHeight;
     private List<String> selectedArtificialPresetIds;
@@ -87,6 +88,7 @@ public final class ModConfig {
         // 新增默认值
         this.roadWidth = 3;    
         this.lampInterval = 32; 
+        this.roadClearHeight = 4;
         this.tunnelEnabled = false;
         this.tunnelClearHeight = 5;
         this.selectedArtificialPresetIds = new ArrayList<>();
@@ -188,6 +190,8 @@ public final class ModConfig {
         if (roadWidth > 15) roadWidth = 15;          // 宽度上限合理限制
         if (lampInterval < 1) lampInterval = 59;     // 保底
         if (lampInterval > 2048) lampInterval = 2048;
+        if (roadClearHeight < 1) roadClearHeight = 4;
+        if (roadClearHeight > 16) roadClearHeight = 16;
         if (tunnelClearHeight < 2) tunnelClearHeight = 2;
         if (tunnelClearHeight > 16) tunnelClearHeight = 16;
         if (selectedArtificialPresetIds == null) selectedArtificialPresetIds = new ArrayList<>();
@@ -271,6 +275,9 @@ public final class ModConfig {
     // 新增：路灯间隔（段）
     public int lampInterval() { return lampInterval; }
     public void setLampInterval(int v) { this.lampInterval = v; }
+
+    public int roadClearHeight() { return roadClearHeight; }
+    public void setRoadClearHeight(int v) { this.roadClearHeight = v; }
 
     
 

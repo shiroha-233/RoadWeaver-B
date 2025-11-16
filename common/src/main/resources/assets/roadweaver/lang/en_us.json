@@ -59,6 +59,8 @@
   "config.roadweaver.road_width.tooltip": "Specify road width (in blocks).",
   "config.roadweaver.lamp_interval": "Lamp Interval (segments)",
   "config.roadweaver.lamp_interval.tooltip": "Place a lamp/marker every N segments; larger values place fewer lamps.",
+  "config.roadweaver.road_clear_height": "Road Clear Height (blocks)",
+  "config.roadweaver.road_clear_height.tooltip": "Vertical space cleared above the road surface in non-tunnel mode. Higher values carve more headroom but may cut into nearby terrain or structures.",
   "config.roadweaver.causeway_max_depth": "Max Backfill Depth (blocks)",
   "config.roadweaver.causeway_max_depth.tooltip": "When ground below is not sturdy, fill downward up to this many layers (0-12). Set 0 to disable backfill.",
   "config.roadweaver.selected_artificial_preset_ids": "Selected Artificial Preset IDs",

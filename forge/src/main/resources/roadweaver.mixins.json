@@ -4,7 +4,8 @@
     "package": "net.shiroha233.roadweaver.mixin",
     "compatibilityLevel": "JAVA_17",
     "mixins": [
-        "MinecraftServerMixin"
+        "MinecraftServerMixin",
+        "NoiseBasedChunkGeneratorMixin"
     ],
     "client": [
         "CreateWorldScreenMixin",

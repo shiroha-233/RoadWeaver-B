@@ -66,14 +66,22 @@ public final class TreeRemovalUtil {
             boolean isVine = isVineLike(st);
             boolean isCocoa = st.is(Blocks.COCOA);
             boolean isHangingRoots = st.is(Blocks.HANGING_ROOTS);
-            if (!(isLog || isLeaves || isBamboo || isVine || isCocoa || isHangingRoots)) continue;
+            boolean isSnowLayer = st.is(Blocks.SNOW);
+
+            boolean coreTreeBlock = isLog || isLeaves || isBamboo || isVine || isCocoa || isHangingRoots;
+            if (!coreTreeBlock) {
+                if (isSnowLayer) {
+                    toRemove.add(p);
+                }
+                continue;
+            }
+
             toRemove.add(p);
             if (isLeaves) leavesCount++;
             if (isBamboo) hasBamboo = true;
             if (isVine) hasVineLike = true;
             if (isCocoa) hasCocoa = true;
 
-            // 6邻接
             BlockPos[] neigh = new BlockPos[]{p.above(), p.below(), p.north(), p.south(), p.east(), p.west()};
             for (BlockPos n : neigh) {
                 long key = n.asLong();

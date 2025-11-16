@@ -177,6 +177,14 @@ public class ConfigScreenFactoryImpl {
         );
 
         genSurface.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.road_clear_height"), conf.roadClearHeight())
+                        .setTooltip(Component.translatable("config.roadweaver.road_clear_height.tooltip"))
+                        .setMin(1).setMax(16)
+                        .setSaveConsumer(conf::setRoadClearHeight)
+                        .build()
+        );
+
+        genSurface.addEntry(
                 eb.startIntField(Component.translatable("config.roadweaver.causeway_max_depth"), conf.causewayMaxDepth())
                         .setTooltip(Component.translatable("config.roadweaver.causeway_max_depth.tooltip"))
                         .setMin(0).setMax(12)

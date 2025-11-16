@@ -7,9 +7,10 @@ import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.shiroha233.roadweaver.config.ModConfig;
+import net.shiroha233.roadweaver.features.decoration.system.AboveColumnClearer;
 import net.shiroha233.roadweaver.helpers.Records;
 
- 
+
 
 public final class BridgeBuilder {
     private BridgeBuilder() {}
@@ -31,8 +32,12 @@ public final class BridgeBuilder {
                                     boolean placeRail) {
         
         // 1) 直接使用段落自身的positions来放置桥面，确保与普通道路宽度完全一致
+        //    同时对桥面上方进行清障处理，防止冰刺/地形挡住桥面
         for (BlockPos widthPos : seg.positions()) {
-            world.setBlock(new BlockPos(widthPos.getX(), deckY, widthPos.getZ()), DECK, 3);
+            BlockPos deckPos = new BlockPos(widthPos.getX(), deckY, widthPos.getZ());
+            world.setBlock(deckPos, DECK, 3);
+            // 注意：AboveColumnClearer 约定传入的是“路面上方一格”，否则会把路面本身清掉
+            AboveColumnClearer.clearAboveColumn(world, deckPos.above(), cfg);
         }
 
         // 2) 桥墩（按段间隔）

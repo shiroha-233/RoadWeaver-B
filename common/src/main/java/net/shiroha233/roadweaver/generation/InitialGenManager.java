@@ -5,7 +5,6 @@ import net.minecraft.world.level.Level;
 import net.shiroha233.roadweaver.helpers.Records;
 import net.shiroha233.roadweaver.persistence.WorldDataProvider;
 import net.shiroha233.roadweaver.planning.RoadPlanningService;
-import net.shiroha233.roadweaver.features.roadlogic.RoadPathCalculator;
 
 import java.util.List;
 
@@ -76,7 +75,6 @@ public final class InitialGenManager {
                 }
             }
         }
-        RoadPathCalculator.clearCaches();
         active = false;
     }
 
