@@ -110,14 +110,21 @@ public final class RoadShardStorage {
     }
 
     private static void saveShard(ServerLevel level, Shard s) throws IOException {
-        if (!s.dirty) return;
+        List<Records.RoadData> snapshot;
+        synchronized (s) {
+            if (!s.dirty) {
+                return;
+            }
+            // 在锁内复制一次，避免在写入磁盘时被其他线程修改
+            snapshot = new ArrayList<>(s.roads);
+            s.dirty = false;
+        }
         CompoundTag tag = new CompoundTag();
-        Codec.list(Records.RoadData.CODEC).encodeStart(OPS, s.roads)
+        Codec.list(Records.RoadData.CODEC).encodeStart(OPS, snapshot)
                 .result()
                 .ifPresent(nbt -> tag.put("roads", nbt));
         Path p = shardPath(level, s.rx, s.rz);
         net.minecraft.nbt.NbtIo.writeCompressed(tag, p.toFile());
-        s.dirty = false;
     }
 
     public static void flushAll(ServerLevel level) {
@@ -155,9 +162,11 @@ public final class RoadShardStorage {
                 try {
                     Shard s = loadShard(level, rx, rz);
                     long id = fingerprint(rd);
-                    if (s.ids.add(id)) {
-                        s.roads.add(rd);
-                        s.dirty = true;
+                    synchronized (s) {
+                        if (s.ids.add(id)) {
+                            s.roads.add(rd);
+                            s.dirty = true;
+                        }
                     }
                 } catch (IOException ignored) {}
             }
@@ -188,7 +197,12 @@ public final class RoadShardStorage {
             for (int rz = rz0; rz <= rz1; rz++) {
                 try {
                     Shard s = loadShard(level, rx, rz);
-                    for (Records.RoadData rd : s.roads) {
+                    List<Records.RoadData> snapshot;
+                    synchronized (s) {
+                        // 这里只在锁内复制列表，实际判定与放置在锁外完成，减少锁持有时间
+                        snapshot = new ArrayList<>(s.roads);
+                    }
+                    for (Records.RoadData rd : snapshot) {
                         if (intersects(rd, minBlockX, minBlockZ, maxBlockX, maxBlockZ)) {
                             long id = fingerprint(rd);
                             if (seen.add(id)) out.add(rd);
@@ -216,6 +230,7 @@ public final class RoadShardStorage {
 
     private static final class Shard {
         final int rx, rz;
+        // roads / ids 由 RoadShardStorage 使用 synchronized(this) 保护，避免并发修改异常
         final List<Records.RoadData> roads;
         final Set<Long> ids = new HashSet<>();
         boolean dirty;

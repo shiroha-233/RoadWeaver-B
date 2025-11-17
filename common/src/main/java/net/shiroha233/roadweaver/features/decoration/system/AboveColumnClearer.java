@@ -16,24 +16,36 @@ public final class AboveColumnClearer {
         int maxH = tunnel
                 ? Math.max(2, Math.min(16, cfg.tunnelClearHeight()))
                 : Math.max(1, Math.min(16, defaultClear));
+        boolean allowCutLogsInThisColumn = false;
         for (int i = 0; i < maxH; i++) {
             BlockPos up = surfacePos.above(i);
             BlockState st = world.getBlockState(up);
             if (st.isAir()) continue;
-            if (cfg != null && cfg.removeWholeTreeOnPath() && (st.is(BlockTags.LOGS) || st.is(Blocks.BAMBOO) || TreeRemovalUtil.isVineLike(st) || st.is(Blocks.COCOA))) {
+            boolean isLog = st.is(BlockTags.LOGS);
+            boolean isFence = st.is(BlockTags.FENCES);
+            boolean isTreeCoreCandidate = isLog
+                    || st.is(Blocks.BAMBOO)
+                    || TreeRemovalUtil.isVineLike(st)
+                    || st.is(Blocks.COCOA)
+                    || TreeRemovalUtil.isMushroomLike(st);
+            if (cfg != null && cfg.removeWholeTreeOnPath() && isTreeCoreCandidate) {
                 if (TreeRemovalUtil.fellTreeAt(world, up, cfg)) {
                     continue;
+                } else {
+                    if (isLog || TreeRemovalUtil.isMushroomLike(st)) {
+                        allowCutLogsInThisColumn = true;
+                    }
                 }
             }
             if (tunnel) {
                 // 隧道模式：允许挖掉除木头/栅栏以外的大部分方块（包括石头、冰等），高度由 tunnelClearHeight 控制
-                if (!st.is(BlockTags.LOGS) && !st.is(BlockTags.FENCES)) {
+                if ((!isLog || allowCutLogsInThisColumn) && !isFence) {
                     world.setBlock(up, Blocks.AIR.defaultBlockState(), 3);
                 } else {
                     break;
                 }
             } else {
-                if (!st.is(BlockTags.LOGS) && !st.is(BlockTags.FENCES)) {
+                if ((!isLog || allowCutLogsInThisColumn) && !isFence) {
                     world.setBlock(up, Blocks.AIR.defaultBlockState(), 3);
                 } else {
                     break;

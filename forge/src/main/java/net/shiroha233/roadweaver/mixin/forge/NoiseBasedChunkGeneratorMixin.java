@@ -1,4 +1,4 @@
-package net.shiroha233.roadweaver.mixin;
+package net.shiroha233.roadweaver.mixin.forge;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.Heightmap;

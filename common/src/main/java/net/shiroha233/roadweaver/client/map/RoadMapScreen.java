@@ -131,7 +131,12 @@ public class RoadMapScreen extends Screen {
 
         int thickness = computeThickness();
         java.util.List<net.shiroha233.roadweaver.helpers.Records.StructureConnection> connForLines = new java.util.ArrayList<>(snapshot.connections());
-        connForLines.removeIf(c -> c.status() == net.shiroha233.roadweaver.helpers.Records.ConnectionStatus.COMPLETED);
+        // 当存在详细道路几何时，已完成道路用多段折线表示，这里可以隐藏 COMPLETED 连接线；
+        // 当没有详细道路几何时，保留 COMPLETED 连接，让其以简单直线表示已连接道路。
+        boolean hasDetailedRoads = !snapshot.roadPolylines().isEmpty();
+        if (hasDetailedRoads) {
+            connForLines.removeIf(c -> c.status() == net.shiroha233.roadweaver.helpers.Records.ConnectionStatus.COMPLETED);
+        }
         MapRenderers.renderConnections(
                 g,
                 connForLines,
@@ -171,10 +176,34 @@ public class RoadMapScreen extends Screen {
                 left, top, right, bottom
         );
         if (manualMode && selectedA != null && view.isInViewWorld(selectedA.getX(), selectedA.getZ())) {
-            int sx = view.toScreenX(selectedA.getX(), mapX, INNER_PAD, contentW);
-            int sy = view.toScreenY(selectedA.getZ(), mapY, INNER_PAD, contentH);
+            int sxA = view.toScreenX(selectedA.getX(), mapX, INNER_PAD, contentW);
+            int syA = view.toScreenY(selectedA.getZ(), mapY, INNER_PAD, contentH);
             int selSize = computePointSize() * 2 + 4;
-            RenderUtils.drawPoint(g, sx, sy, selSize, 0xFFFF3B30, left, top, right, bottom);
+            // 选中起点的高亮显示
+            RenderUtils.drawPoint(g, sxA, syA, selSize, 0xFFFF3B30, left, top, right, bottom);
+
+            // 手动连接预览：从起点到鼠标的一条虚线（尽量吸附到最近结构点）
+            if (insideMap(mouseX, mouseY)) {
+                int sxB;
+                int syB;
+                BlockPos hover = findNearestStructure(mouseX, mouseY);
+                if (hover != null && view.isInViewWorld(hover.getX(), hover.getZ())) {
+                    sxB = view.toScreenX(hover.getX(), mapX, INNER_PAD, contentW);
+                    syB = view.toScreenY(hover.getZ(), mapY, INNER_PAD, contentH);
+                } else {
+                    sxB = (int) Math.round(mouseX);
+                    syB = (int) Math.round(mouseY);
+                }
+                int previewThickness = computeThickness();
+                RenderUtils.drawThickDashedLine(
+                        g,
+                        sxA, syA, sxB, syB,
+                        0xCCFF3B30,
+                        previewThickness,
+                        8, 6,
+                        left, top, right, bottom
+                );
+            }
         }
         if (!showContextMenu) {
             MapInteraction.renderHoverHighlight(g, snapshot, view, mapX, mapY, mapW, mapH, INNER_PAD, mouseX, mouseY);
@@ -329,8 +358,10 @@ public class RoadMapScreen extends Screen {
         if (manualMode && insideMap(mouseX, mouseY) && button == 0) {
             BlockPos best = findNearestStructure(mouseX, mouseY);
             if (best != null) {
-                if (selectedA == null || selectedA.equals(best)) {
+                if (selectedA == null) {
                     selectedA = best;
+                } else if (selectedA.equals(best)) {
+                    selectedA = null;
                 } else {
                     ClientNetBridge.requestManualConnect(selectedA.getX(), selectedA.getZ(), best.getX(), best.getZ());
                     selectedA = null;

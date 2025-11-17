@@ -29,7 +29,7 @@ public final class BridgeSegmentPlanner {
         int segDeckY = candidateDeckY;
         if (lastDeckY != null) {
             int stepDeck = Math.max(0, Math.min(8, cfg.maxSlopeStepPerTwoSegments()));
-            if (stepDeck > 0) {
+            if (cfg.slopeLimitEnabled() && stepDeck > 0) {
                 if (segDeckY > lastDeckY + stepDeck) segDeckY = lastDeckY + stepDeck;
                 if (segDeckY < lastDeckY - stepDeck) segDeckY = lastDeckY - stepDeck;
             }

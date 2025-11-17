@@ -20,6 +20,9 @@ import java.util.Set;
 public final class MapDataCollector {
     private MapDataCollector() {}
 
+    // 视图跨度超过该阈值时，不再加载详细道路几何，只依赖连接直线
+    private static final int MAX_DETAILED_ROAD_SPAN_BLOCKS = 7680;
+
     public static MapSnapshot build(ServerLevel level) {
         WorldDataProvider provider = WorldDataProvider.getInstance();
         Records.StructureLocationData loc = provider.getStructureLocations(level);
@@ -321,19 +324,25 @@ public final class MapDataCollector {
         }
 
         List<List<BlockPos>> roads = new ArrayList<>();
-        List<Records.RoadData> roadDataList = RoadShardStorage.queryRect(level, minBlockX, minBlockZ, maxBlockX, maxBlockZ);
-        for (Records.RoadData rd : roadDataList) {
-            List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
-            if (segs == null || segs.isEmpty()) continue;
-            ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
-            for (Records.RoadSegmentPlacement sp : segs) {
-                BlockPos p = sp.middlePos();
-                int x = p.getX(), z = p.getZ();
-                if (x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ) {
-                    poly.add(p);
+        int spanX = Math.abs(maxBlockX - minBlockX);
+        int spanZ = Math.abs(maxBlockZ - minBlockZ);
+        // 视图跨度太大时跳过道路几何的加载，只用连接直线表示已连接道路
+        boolean loadDetailedRoads = spanX <= MAX_DETAILED_ROAD_SPAN_BLOCKS && spanZ <= MAX_DETAILED_ROAD_SPAN_BLOCKS;
+        if (loadDetailedRoads) {
+            List<Records.RoadData> roadDataList = RoadShardStorage.queryRect(level, minBlockX, minBlockZ, maxBlockX, maxBlockZ);
+            for (Records.RoadData rd : roadDataList) {
+                List<Records.RoadSegmentPlacement> segs = rd.roadSegmentList();
+                if (segs == null || segs.isEmpty()) continue;
+                ArrayList<BlockPos> poly = new ArrayList<>(segs.size());
+                for (Records.RoadSegmentPlacement sp : segs) {
+                    BlockPos p = sp.middlePos();
+                    int x = p.getX(), z = p.getZ();
+                    if (x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ) {
+                        poly.add(p);
+                    }
                 }
+                if (poly.size() >= 2) roads.add(poly);
             }
-            if (poly.size() >= 2) roads.add(poly);
         }
 
         return new MapSnapshot(structures, conns, infos, roads);

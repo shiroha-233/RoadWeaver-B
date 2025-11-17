@@ -48,15 +48,17 @@ public final class BridgeTransitionAdjuster {
         }
 
         int step = Math.max(0, Math.min(8, cfg.maxSlopeStepPerTwoSegments()));
-        if (step > 0) {
-            for (int i = 1; i < n; i++) {
-                if (adjusted[i] > adjusted[i - 1] + step) adjusted[i] = adjusted[i - 1] + step;
-                if (adjusted[i] < adjusted[i - 1] - step) adjusted[i] = adjusted[i - 1] - step;
-            }
-            for (int i = n - 2; i >= 0; i--) {
-                if (adjusted[i] > adjusted[i + 1] + step) adjusted[i] = adjusted[i + 1] + step;
-                if (adjusted[i] < adjusted[i + 1] - step) adjusted[i] = adjusted[i + 1] - step;
-            }
+        if (!cfg.slopeLimitEnabled() || step <= 0) {
+            return adjusted;
+        }
+
+        for (int i = 1; i < n; i++) {
+            if (adjusted[i] > adjusted[i - 1] + step) adjusted[i] = adjusted[i - 1] + step;
+            if (adjusted[i] < adjusted[i - 1] - step) adjusted[i] = adjusted[i - 1] - step;
+        }
+        for (int i = n - 2; i >= 0; i--) {
+            if (adjusted[i] > adjusted[i + 1] + step) adjusted[i] = adjusted[i + 1] + step;
+            if (adjusted[i] < adjusted[i + 1] - step) adjusted[i] = adjusted[i + 1] - step;
         }
         return adjusted;
     }

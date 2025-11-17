@@ -36,9 +36,13 @@ public final class Road {
         boolean allowN = cfg.allowNatural();
         if (!allowA && !allowN) return;
         int type = allowA && allowN ? (random.nextBoolean() ? 0 : 1) : (allowA ? 0 : 1);
-        List<BlockState> materials = type == 0
-                ? PresetService.chooseMaterialsForArtificial(random, cfg)
-                : java.util.List.of(Blocks.DIRT_PATH.defaultBlockState(), Blocks.GRAVEL.defaultBlockState());
+        List<BlockState> materials;
+        if (type == 0) {
+            // 人工道路始终从 JSON 预设系统中选择一套材质
+            materials = PresetService.chooseMaterialsForArtificial(random, cfg);
+        } else {
+            materials = java.util.List.of(Blocks.DIRT_PATH.defaultBlockState(), Blocks.GRAVEL.defaultBlockState());
+        }
 
         BlockPos start = connection.from();
         BlockPos end = connection.to();
@@ -92,6 +96,13 @@ public final class Road {
                 sum += yTop; cnt++;
             }
             base[i] = cnt > 0 ? (int) Math.round(sum / (double) cnt) : centers.get(i).getY();
+        }
+
+        // 如果关闭限坡平滑，则直接使用基础平均高度，不再进行每两段步进限制
+        if (!ConfigService.get().slopeLimitEnabled()) {
+            List<Integer> out = new ArrayList<>(n);
+            for (int v : base) out.add(v);
+            return out;
         }
 
         int[] smoothed = base.clone();

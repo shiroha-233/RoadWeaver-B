@@ -125,21 +125,56 @@ public class ConfigScreenFactoryImpl {
                         .build()
         );
 
-        ConfigCategory genSurface = builder.getOrCreateCategory(Component.translatable("config.roadweaver.category.gen_surface"));
+        ConfigCategory roadGen = builder.getOrCreateCategory(Component.translatable("config.roadweaver.category.road_generation"));
 
-        genSurface.addEntry(
+        roadGen.addEntry(
                 eb.startBooleanToggle(Component.translatable("config.roadweaver.allow_artificial"), conf.allowArtificial())
                         .setTooltip(Component.translatable("config.roadweaver.allow_artificial.tooltip"))
                         .setSaveConsumer(conf::setAllowArtificial)
                         .build()
         );
 
-        genSurface.addEntry(
+        roadGen.addEntry(
                 eb.startBooleanToggle(Component.translatable("config.roadweaver.allow_natural"), conf.allowNatural())
                         .setTooltip(Component.translatable("config.roadweaver.allow_natural.tooltip"))
                         .setSaveConsumer(conf::setAllowNatural)
                         .build()
         );
+
+        roadGen.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.place_waypoints"), conf.placeWaypoints())
+                        .setTooltip(Component.translatable("config.roadweaver.place_waypoints.tooltip"))
+                        .setSaveConsumer(conf::setPlaceWaypoints)
+                        .build()
+        );
+
+        roadGen.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.road_width"), conf.roadWidth())
+                        .setTooltip(Component.translatable("config.roadweaver.road_width.tooltip"))
+                        .setMin(0).setMax(15)
+                        .setSaveConsumer(conf::setRoadWidth)
+                        .build()
+        );
+
+        roadGen.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.lamp_interval"), conf.lampInterval())
+                        .setTooltip(Component.translatable("config.roadweaver.lamp_interval.tooltip"))
+                        .setMin(1).setMax(2048)
+                        .setSaveConsumer(conf::setLampInterval)
+                        .build()
+        );
+
+        roadGen.addEntry(
+                eb.startIntField(Component.translatable("config.roadweaver.road_clear_height"), conf.roadClearHeight())
+                        .setTooltip(Component.translatable("config.roadweaver.road_clear_height.tooltip"))
+                        .setMin(1).setMax(16)
+                        .setSaveConsumer(conf::setRoadClearHeight)
+                        .build()
+        );
+
+        roadGen.addEntry(new OpenPresetEditorEntry());
+
+        ConfigCategory genSurface = builder.getOrCreateCategory(Component.translatable("config.roadweaver.category.gen_surface"));
 
         genSurface.addEntry(
                 eb.startIntField(Component.translatable("config.roadweaver.averaging_radius"), conf.averagingRadius())
@@ -158,26 +193,9 @@ public class ConfigScreenFactoryImpl {
         );
 
         genSurface.addEntry(
-                eb.startIntField(Component.translatable("config.roadweaver.road_width"), conf.roadWidth())
-                        .setTooltip(Component.translatable("config.roadweaver.road_width.tooltip"))
-                        .setMin(0).setMax(15)
-                        .setSaveConsumer(conf::setRoadWidth)
-                        .build()
-        );
-
-        genSurface.addEntry(
-                eb.startIntField(Component.translatable("config.roadweaver.lamp_interval"), conf.lampInterval())
-                        .setTooltip(Component.translatable("config.roadweaver.lamp_interval.tooltip"))
-                        .setMin(1).setMax(2048)
-                        .setSaveConsumer(conf::setLampInterval)
-                        .build()
-        );
-
-        genSurface.addEntry(
-                eb.startIntField(Component.translatable("config.roadweaver.road_clear_height"), conf.roadClearHeight())
-                        .setTooltip(Component.translatable("config.roadweaver.road_clear_height.tooltip"))
-                        .setMin(1).setMax(16)
-                        .setSaveConsumer(conf::setRoadClearHeight)
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.slope_limit_enabled"), conf.slopeLimitEnabled())
+                        .setTooltip(Component.translatable("config.roadweaver.slope_limit_enabled.tooltip"))
+                        .setSaveConsumer(conf::setSlopeLimitEnabled)
                         .build()
         );
 
@@ -186,21 +204,6 @@ public class ConfigScreenFactoryImpl {
                         .setTooltip(Component.translatable("config.roadweaver.causeway_max_depth.tooltip"))
                         .setMin(0).setMax(12)
                         .setSaveConsumer(conf::setCausewayMaxDepth)
-                        .build()
-        );
-
-        List<String> selected = new ArrayList<>(conf.selectedArtificialPresetIds() == null ? List.of() : conf.selectedArtificialPresetIds());
-        genSurface.addEntry(
-                eb.startStrList(Component.translatable("config.roadweaver.selected_artificial_preset_ids"), selected)
-                        .setTooltip(Component.translatable("config.roadweaver.selected_artificial_preset_ids.tooltip"))
-                        .setSaveConsumer(conf::setSelectedArtificialPresetIds)
-                        .build()
-        );
-
-        genSurface.addEntry(
-                eb.startBooleanToggle(Component.translatable("config.roadweaver.use_weighted_preset"), conf.useWeightedPreset())
-                        .setTooltip(Component.translatable("config.roadweaver.use_weighted_preset.tooltip"))
-                        .setSaveConsumer(conf::setUseWeightedPreset)
                         .build()
         );
 
@@ -320,6 +323,13 @@ public class ConfigScreenFactoryImpl {
                         .setTooltip(Component.translatable("config.roadweaver.a_star_max_steps.tooltip"))
                         .setMin(100).setMax(100000)
                         .setSaveConsumer(conf::setAStarMaxSteps)
+                        .build()
+        );
+
+        genPerformance.addEntry(
+                eb.startBooleanToggle(Component.translatable("config.roadweaver.use_bidirectional_a_star"), conf.useBidirectionalAStar())
+                        .setTooltip(Component.translatable("config.roadweaver.use_bidirectional_a_star.tooltip"))
+                        .setSaveConsumer(conf::setUseBidirectionalAStar)
                         .build()
         );
 

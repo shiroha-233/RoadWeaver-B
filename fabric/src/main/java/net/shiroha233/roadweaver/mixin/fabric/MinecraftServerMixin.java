@@ -1,4 +1,4 @@
-package net.shiroha233.roadweaver.mixin;
+package net.shiroha233.roadweaver.mixin.fabric;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;

@@ -286,17 +286,18 @@ public final class RoadGenerationService {
         java.util.Iterator<Records.StructureConnection> it = q.iterator();
         Records.StructureConnection best = null;
         long bestd = Long.MAX_VALUE;
-        int c = 0;
-        while (it.hasNext() && c < Math.max(1, sample)) {
+        while (it.hasNext()) {
             Records.StructureConnection e = it.next();
             long d = playerDistance2(e, players);
             if (d < bestd) {
                 bestd = d;
                 best = e;
             }
-            c++;
         }
         if (best != null && q.remove(best)) return best;
         return q.poll();
     }
+
+// ...
+
 }

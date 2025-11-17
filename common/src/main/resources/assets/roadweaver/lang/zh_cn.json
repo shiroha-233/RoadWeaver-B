@@ -6,6 +6,8 @@
 
   "gui.roadweaver.common.on": "开启",
   "gui.roadweaver.common.off": "关闭",
+  "gui.roadweaver.common.save": "保存",
+  "gui.roadweaver.common.cancel": "取消",
   "toast.roadweaver.teleport_confirm": "再次点击以传送到 %s，%s",
 
   "config.roadweaver.title": "RoadWeaver 配置",
@@ -55,6 +57,8 @@
   "config.roadweaver.averaging_radius.tooltip": "指定高度平滑半径（方块）",
   "config.roadweaver.max_slope_step_per_two_segments": "每两段最大高度步进（方块）",
   "config.roadweaver.max_slope_step_per_two_segments.tooltip": "道路高度平滑时，每两段允许的最大高度变化（0-8）。数值越小越平缓。",
+  "config.roadweaver.slope_limit_enabled": "启用限坡平滑",
+  "config.roadweaver.slope_limit_enabled.tooltip": "开启后，道路与桥梁高度会根据“每两段最大高度步进”进行限坡平滑；关闭后允许更陡的高度变化。",
   "config.roadweaver.road_width": "道路宽度",
   "config.roadweaver.road_width.tooltip": "指定道路宽度（方块）",
   "config.roadweaver.lamp_interval": "路灯间隔（段）",
@@ -63,10 +67,6 @@
   "config.roadweaver.road_clear_height.tooltip": "非隧道模式下，从路面上方开始向上清理的高度。数值越大，头顶挖空越高，但越容易切掉周围地形/结构。",
   "config.roadweaver.enable_lamp": "启用路灯",
   "config.roadweaver.enable_lamp.tooltip": "每隔N个道路段放置一次路灯/路标，数值越大越稀疏。",
-  "config.roadweaver.selected_artificial_preset_ids": "人工道路材质预设ID（可多选）",
-  "config.roadweaver.selected_artificial_preset_ids.tooltip": "来自 config/roadweaver/presets/*.json 的ID；可输入多个。留空则表示全部可用。",
-  "config.roadweaver.use_weighted_preset": "使用权重随机预设",
-  "config.roadweaver.use_weighted_preset.tooltip": "开启后，每条道路按预设文件中的 weight 进行加权随机选择。",
   "config.roadweaver.remove_whole_tree_on_path": "道路穿树时移除整株树",
   "config.roadweaver.remove_whole_tree_on_path.tooltip": "当净空列遇到原木时，尝试在限制范围内移除整株相连的树（原木/树叶），避免出现悬空树。",
   "config.roadweaver.tree_removal_max_radius": "整树移除最大水平半径",
@@ -87,6 +87,8 @@
   "config.roadweaver.max_concurrent_generations.tooltip": "同时进行道路生成的最大数量上限。",
   "config.roadweaver.a_star_max_steps": "A* 最大搜索步数",
   "config.roadweaver.a_star_max_steps.tooltip": "A* 算法单次搜索的最大步数限制，防止在复杂地形中无限搜索。",
+  "config.roadweaver.use_bidirectional_a_star": "启用双向 A* 寻路（实验性）",
+  "config.roadweaver.use_bidirectional_a_star.tooltip": "开启后从起点和终点同时进行 A* 搜索，若失败则回退到原先的单向 A*。",
 
   "gui.roadweaver.map.menu.teleport": "传送到此处",
   "gui.roadweaver.map.teleport.success": "传送成功",
@@ -138,5 +140,14 @@
   "tip.roadweaver.loading.2": "你可以在 RoadWeaver 设置中配置初始规划半径。",
   "tip.roadweaver.loading.3": "较大的初始规划半径可能会显著降低新世界的创建速度。",
   "tip.roadweaver.loading.4": "初始加载是为了确保你进入世界时有完整的道路。",
-  "tip.roadweaver.loading.5": "不要 tp 到未铺设的道路区域！"
+  "tip.roadweaver.loading.5": "不要 tp 到未铺设的道路区域！",
+
+  "gui.roadweaver.preset_editor.title": "自定义道路材质预设",
+  "gui.roadweaver.preset_editor.search": "搜索方块...",
+  "gui.roadweaver.preset_editor.name": "预设名称",
+  "gui.roadweaver.preset_editor.new": "新建",
+  "gui.roadweaver.preset_editor.rename": "重命名",
+  "gui.roadweaver.preset_editor.delete": "删除",
+  "gui.roadweaver.preset_editor.default_name": "预设",
+  "config.roadweaver.open_preset_editor": "打开预设编辑器"
 }

@@ -24,13 +24,19 @@ public final class TreeRemovalUtil {
         int leavesConfirm = Math.max(0, Math.min(128, cfg.treeLeavesConfirm()));
 
         BlockState startState = world.getBlockState(logStart);
-        if (!(startState.is(BlockTags.LOGS) || startState.is(Blocks.BAMBOO) || isVineLike(startState) || startState.is(Blocks.COCOA) || startState.is(Blocks.HANGING_ROOTS))) return false;
+        boolean startIsTreeCore = startState.is(BlockTags.LOGS)
+                || startState.is(Blocks.BAMBOO)
+                || isVineLike(startState)
+                || startState.is(Blocks.COCOA)
+                || startState.is(Blocks.HANGING_ROOTS)
+                || isMushroomLike(startState);
+        if (!startIsTreeCore) return false;
         BlockPos base = logStart;
         int steps = 0;
         while (steps < maxH) {
             BlockPos down = base.below();
             BlockState downSt = world.getBlockState(down);
-            if (downSt.is(BlockTags.LOGS) || downSt.is(Blocks.BAMBOO)) {
+            if (downSt.is(BlockTags.LOGS) || downSt.is(Blocks.BAMBOO) || isMushroomLike(downSt)) {
                 base = down;
                 steps++;
             } else {
@@ -52,6 +58,7 @@ public final class TreeRemovalUtil {
         boolean hasBamboo = false;
         boolean hasVineLike = false;
         boolean hasCocoa = false;
+        boolean hasMushroom = false;
 
         q.add(base);
         seen.add(base.asLong());
@@ -68,7 +75,11 @@ public final class TreeRemovalUtil {
             boolean isHangingRoots = st.is(Blocks.HANGING_ROOTS);
             boolean isSnowLayer = st.is(Blocks.SNOW);
 
-            boolean coreTreeBlock = isLog || isLeaves || isBamboo || isVine || isCocoa || isHangingRoots;
+            boolean isMushroomStem = st.is(Blocks.MUSHROOM_STEM);
+            boolean isMushroomCap = st.is(Blocks.RED_MUSHROOM_BLOCK) || st.is(Blocks.BROWN_MUSHROOM_BLOCK);
+            boolean isMushroom = isMushroomStem || isMushroomCap;
+
+            boolean coreTreeBlock = isLog || isLeaves || isBamboo || isVine || isCocoa || isHangingRoots || isMushroom;
             if (!coreTreeBlock) {
                 if (isSnowLayer) {
                     toRemove.add(p);
@@ -81,6 +92,7 @@ public final class TreeRemovalUtil {
             if (isBamboo) hasBamboo = true;
             if (isVine) hasVineLike = true;
             if (isCocoa) hasCocoa = true;
+            if (isMushroom) hasMushroom = true;
 
             BlockPos[] neigh = new BlockPos[]{p.above(), p.below(), p.north(), p.south(), p.east(), p.west()};
             for (BlockPos n : neigh) {
@@ -92,7 +104,7 @@ public final class TreeRemovalUtil {
         }
 
         if (toRemove.isEmpty()) return false;
-        if (!hasBamboo && !hasVineLike && !hasCocoa && leavesCount < leavesConfirm) return false;
+        if (!hasBamboo && !hasVineLike && !hasCocoa && !hasMushroom && leavesCount < leavesConfirm) return false;
         for (BlockPos p : toRemove) {
             world.setBlock(p, Blocks.AIR.defaultBlockState(), 3);
         }
@@ -107,5 +119,11 @@ public final class TreeRemovalUtil {
                 || st.is(Blocks.WEEPING_VINES_PLANT)
                 || st.is(Blocks.TWISTING_VINES)
                 || st.is(Blocks.TWISTING_VINES_PLANT);
+    }
+
+    public static boolean isMushroomLike(BlockState st) {
+        return st.is(Blocks.MUSHROOM_STEM)
+                || st.is(Blocks.RED_MUSHROOM_BLOCK)
+                || st.is(Blocks.BROWN_MUSHROOM_BLOCK);
     }
 }

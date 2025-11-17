@@ -145,33 +145,21 @@ public final class PresetService {
     }
 
     public static synchronized List<BlockState> chooseMaterialsForArtificial(RandomSource rnd, ModConfig cfg) {
+        // 人工道路材质现在完全由 JSON 预设目录决定，不再依赖配置里手动填写的预设 ID
         if (PRESETS.get().isEmpty()) reload();
-        List<String> selected = cfg == null ? List.of() : cfg.selectedArtificialPresetIds();
         Map<String, PresetDef> all = PRESETS.get();
-        List<PresetDef> pool = new ArrayList<>();
-        if (selected != null && !selected.isEmpty()) {
-            for (String id : selected) {
-                PresetDef d = all.get(id);
-                if (d != null) pool.add(d);
-            }
+        List<PresetDef> pool = new ArrayList<>(all.values());
+        if (pool.isEmpty()) {
+            // 如果磁盘上一个预设都没有，就使用内置默认预设
+            pool = new ArrayList<>(defaultPresets().values());
         }
-        if (pool.isEmpty()) pool = new ArrayList<>(all.values());
-        if (pool.isEmpty()) pool = new ArrayList<>(defaultPresets().values());
-        PresetDef chosen = pickPreset(rnd, pool, cfg != null && cfg.useWeightedPreset());
+        PresetDef chosen = pickPreset(rnd, pool);
         return toBlockStates(chosen.materials());
     }
 
-    private static PresetDef pickPreset(RandomSource rnd, List<PresetDef> pool, boolean weighted) {
-        if (!weighted) return pool.get(rnd.nextInt(pool.size()));
-        int sum = 0;
-        for (PresetDef d : pool) sum += Math.max(1, d.weight());
-        int r = rnd.nextInt(Math.max(1, sum));
-        int acc = 0;
-        for (PresetDef d : pool) {
-            acc += Math.max(1, d.weight());
-            if (r < acc) return d;
-        }
-        return pool.get(pool.size() - 1);
+    private static PresetDef pickPreset(RandomSource rnd, List<PresetDef> pool) {
+        // 等概率随机选择一个预设
+        return pool.get(rnd.nextInt(pool.size()));
     }
 
     private static List<BlockState> toBlockStates(List<String> ids) {
@@ -188,11 +176,49 @@ public final class PresetService {
         return out;
     }
 
+    public static List<BlockState> toBlockStatesFromIds(List<String> ids) {
+        return toBlockStates(ids);
+    }
+
     public static synchronized List<List<String>> getMaterialCombos() {
         if (PRESETS.get().isEmpty()) reload();
         List<List<String>> combos = new ArrayList<>();
         for (PresetDef d : PRESETS.get().values()) combos.add(d.materials());
         return combos;
+    }
+
+    public static synchronized void saveOrUpdatePresetFile(String id, String name, List<String> materials, int weight) {
+        if (id == null || id.isBlank()) {
+            return;
+        }
+        Path cfgRoot = Platform.getConfigFolder();
+        Path baseDir = cfgRoot.resolve(BASE_DIR);
+        Path presetDir = baseDir.resolve(PRESET_DIR);
+        try {
+            Files.createDirectories(presetDir);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to create preset directory: {}", presetDir, e);
+        }
+        PresetFile dto = new PresetFile();
+        dto.id = id;
+        dto.name = name;
+        dto.materials = materials == null ? List.of() : new ArrayList<>(materials);
+        dto.weight = weight <= 0 ? 1 : weight;
+        writePreset(presetDir.resolve(id + ".json"), dto);
+    }
+
+    public static synchronized void deletePresetFile(String id) {
+        if (id == null || id.isBlank()) {
+            return;
+        }
+        Path cfgRoot = Platform.getConfigFolder();
+        Path baseDir = cfgRoot.resolve(BASE_DIR);
+        Path presetDir = baseDir.resolve(PRESET_DIR);
+        try {
+            Files.deleteIfExists(presetDir.resolve(id + ".json"));
+        } catch (Exception e) {
+            LOGGER.warn("Failed to delete preset file for id {}: {}", id, e.toString());
+        }
     }
 
     private static class PresetFile {

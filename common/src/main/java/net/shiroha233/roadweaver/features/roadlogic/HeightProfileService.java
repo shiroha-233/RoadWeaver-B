@@ -47,6 +47,13 @@ public final class HeightProfileService {
                 baseYArr[ii] = (int) Math.round(hs.stream().mapToInt(Integer::intValue).average().orElse(middlePositions.get(ii).getY()));
             }
         }
+        // 如果关闭限坡平滑，则直接返回基于平均的高度，不再进行每两段的步进限制
+        if (!cfg.slopeLimitEnabled()) {
+            int[] noSmoothed = new int[n];
+            for (int ii = 0; ii < n; ii++) noSmoothed[ii] = baseYArr[ii];
+            return new HeightProfile(false, noSmoothed);
+        }
+
         int[] smoothed = new int[n];
         for (int ii = 0; ii < n; ii++) smoothed[ii] = baseYArr[ii];
         int step2 = Math.max(0, Math.min(8, cfg.maxSlopeStepPerTwoSegments()));

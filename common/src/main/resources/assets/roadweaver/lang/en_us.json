@@ -6,6 +6,8 @@
 
   "gui.roadweaver.common.on": "ON",
   "gui.roadweaver.common.off": "OFF",
+  "gui.roadweaver.common.save": "Save",
+  "gui.roadweaver.common.cancel": "Cancel",
 
   "toast.roadweaver.teleport_confirm": "Click again to teleport to %s, %s",
 
@@ -55,6 +57,8 @@
   "config.roadweaver.averaging_radius.tooltip": "Smooth the target Y by averaging nearby samples. Larger values reduce bumps but may flatten details.",
   "config.roadweaver.max_slope_step_per_two_segments": "Max Slope Step per Two Segments (blocks)",
   "config.roadweaver.max_slope_step_per_two_segments.tooltip": "During smoothing, clamp height change over two segments to this value (0-8). Smaller is smoother.",
+  "config.roadweaver.slope_limit_enabled": "Enable Slope Limiting",
+  "config.roadweaver.slope_limit_enabled.tooltip": "When enabled, apply slope limiting based on the max slope step setting for road and bridge height profiles. When disabled, roads may have sharper height changes.",
   "config.roadweaver.road_width": "Road Width",
   "config.roadweaver.road_width.tooltip": "Specify road width (in blocks).",
   "config.roadweaver.lamp_interval": "Lamp Interval (segments)",
@@ -63,10 +67,6 @@
   "config.roadweaver.road_clear_height.tooltip": "Vertical space cleared above the road surface in non-tunnel mode. Higher values carve more headroom but may cut into nearby terrain or structures.",
   "config.roadweaver.causeway_max_depth": "Max Backfill Depth (blocks)",
   "config.roadweaver.causeway_max_depth.tooltip": "When ground below is not sturdy, fill downward up to this many layers (0-12). Set 0 to disable backfill.",
-  "config.roadweaver.selected_artificial_preset_ids": "Selected Artificial Preset IDs",
-  "config.roadweaver.selected_artificial_preset_ids.tooltip": "IDs from config/roadweaver/presets/*.json; multiple allowed. Leave empty to use all.",
-  "config.roadweaver.use_weighted_preset": "Use Weighted Preset Selection",
-  "config.roadweaver.use_weighted_preset.tooltip": "When enabled, each road picks a preset using its 'weight'.",
   "config.roadweaver.remove_whole_tree_on_path": "Remove Whole Tree On Path",
   "config.roadweaver.remove_whole_tree_on_path.tooltip": "When the road column hits logs, remove the entire contiguous tree (logs/leaves) within limits to avoid floating trees.",
   "config.roadweaver.tree_removal_max_radius": "Tree Removal Max Radius",
@@ -86,6 +86,8 @@
   "config.roadweaver.max_concurrent_generations.tooltip": "Cap the number of roads generating in parallel.",
   "config.roadweaver.a_star_max_steps": "A* Max Search Steps",
   "config.roadweaver.a_star_max_steps.tooltip": "Maximum search steps for A* algorithm per generation to prevent infinite loops in complex terrain.",
+  "config.roadweaver.use_bidirectional_a_star": "Use Bidirectional A* (experimental)",
+  "config.roadweaver.use_bidirectional_a_star.tooltip": "When enabled, run a bidirectional A* search from both endpoints and fall back to basic A* if no meeting point is found.",
 
   "gui.roadweaver.map.menu.teleport": "Teleport here",
   "gui.roadweaver.map.teleport.success": "Teleported",
@@ -138,5 +140,14 @@
   "tip.roadweaver.loading.2": "You can configure the initial planning radius in the RoadWeaver settings.",
   "tip.roadweaver.loading.3": "A large initial planning radius may significantly slow down new world creation.",
   "tip.roadweaver.loading.4": "Initial loading is to ensure you have a complete road when entering the world.",
-  "tip.roadweaver.loading.5": "Don't tp into the area where the road has not been paved!"
+  "tip.roadweaver.loading.5": "Don't tp into the area where the road has not been paved!",
+
+  "gui.roadweaver.preset_editor.title": "Custom Road Material Preset",
+  "gui.roadweaver.preset_editor.search": "Search blocks...",
+  "gui.roadweaver.preset_editor.name": "Preset name",
+  "gui.roadweaver.preset_editor.new": "New",
+  "gui.roadweaver.preset_editor.rename": "Rename",
+  "gui.roadweaver.preset_editor.delete": "Delete",
+  "gui.roadweaver.preset_editor.default_name": "Preset",
+  "config.roadweaver.open_preset_editor": "Open Preset Editor"
 }

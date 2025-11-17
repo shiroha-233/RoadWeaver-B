@@ -33,14 +33,14 @@ public final class ModConfig {
     private int aStarMaxSteps;             // A* 寻路最大步数上限
     private int causewayMaxDepth;
     private int maxSlopeStepPerTwoSegments;
+    private boolean slopeLimitEnabled = true;     // 是否启用基于 maxSlopeStepPerTwoSegments 的限坡平滑
+    private boolean useBidirectionalAStar; // 是否启用双向 A* 寻路
 
     private int roadWidth;         
     private int lampInterval;      
     private int roadClearHeight;
     private boolean tunnelEnabled;
     private int tunnelClearHeight;
-    private List<String> selectedArtificialPresetIds;
-    private boolean useWeightedPreset;
     private boolean removeWholeTreeOnPath;
     private int treeRemovalMaxRadius;
     private int treeRemovalMaxHeight;
@@ -84,6 +84,8 @@ public final class ModConfig {
         this.aStarMaxSteps = 10000;
         this.causewayMaxDepth = 1;
         this.maxSlopeStepPerTwoSegments = 1;
+        this.slopeLimitEnabled = true;
+        this.useBidirectionalAStar = true;
 
         // 新增默认值
         this.roadWidth = 3;    
@@ -91,8 +93,6 @@ public final class ModConfig {
         this.roadClearHeight = 4;
         this.tunnelEnabled = false;
         this.tunnelClearHeight = 5;
-        this.selectedArtificialPresetIds = new ArrayList<>();
-        this.useWeightedPreset = true;
         this.removeWholeTreeOnPath = true;
         this.treeRemovalMaxRadius = 6;
         this.treeRemovalMaxHeight = 24;
@@ -194,7 +194,6 @@ public final class ModConfig {
         if (roadClearHeight > 16) roadClearHeight = 16;
         if (tunnelClearHeight < 2) tunnelClearHeight = 2;
         if (tunnelClearHeight > 16) tunnelClearHeight = 16;
-        if (selectedArtificialPresetIds == null) selectedArtificialPresetIds = new ArrayList<>();
         if (treeRemovalMaxRadius < 2) treeRemovalMaxRadius = 2;
         if (treeRemovalMaxRadius > 12) treeRemovalMaxRadius = 12;
         if (treeRemovalMaxHeight < 8) treeRemovalMaxHeight = 8;
@@ -268,6 +267,12 @@ public final class ModConfig {
     public int maxSlopeStepPerTwoSegments() { return maxSlopeStepPerTwoSegments; }
     public void setMaxSlopeStepPerTwoSegments(int v) { this.maxSlopeStepPerTwoSegments = v; }
 
+    public boolean slopeLimitEnabled() { return slopeLimitEnabled; }
+    public void setSlopeLimitEnabled(boolean v) { this.slopeLimitEnabled = v; }
+
+    public boolean useBidirectionalAStar() { return useBidirectionalAStar; }
+    public void setUseBidirectionalAStar(boolean v) { this.useBidirectionalAStar = v; }
+
     // 新增：道路宽度（0=自动）
     public int roadWidth() { return roadWidth; }
     public void setRoadWidth(int v) { this.roadWidth = v; }
@@ -290,11 +295,6 @@ public final class ModConfig {
 
     public int tunnelClearHeight() { return tunnelClearHeight; }
     public void setTunnelClearHeight(int v) { this.tunnelClearHeight = v; }
-
-    public List<String> selectedArtificialPresetIds() { return selectedArtificialPresetIds; }
-    public void setSelectedArtificialPresetIds(List<String> v) { this.selectedArtificialPresetIds = v == null ? new ArrayList<>() : new ArrayList<>(v); }
-    public boolean useWeightedPreset() { return useWeightedPreset; }
-    public void setUseWeightedPreset(boolean v) { this.useWeightedPreset = v; }
 
     public boolean removeWholeTreeOnPath() { return removeWholeTreeOnPath; }
     public void setRemoveWholeTreeOnPath(boolean v) { this.removeWholeTreeOnPath = v; }
